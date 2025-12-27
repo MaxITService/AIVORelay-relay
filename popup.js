@@ -2,20 +2,24 @@ const DEFAULT_SETTINGS = {
   host: "127.0.0.1",
   port: 63155,
   path: "/messages",
-  autoSend: true
+  autoSend: true,
+  singleTabBindingMode: true
 };
 
 const DEFAULT_PASSWORD = "fklejqwhfiu342lhk3";
 
 const portInput = document.getElementById("port");
 const autoSendInput = document.getElementById("auto-send");
+const singleTabModeInput = document.getElementById("single-tab-mode");
 const serverUrlEl = document.getElementById("server-url");
 const statusEl = document.getElementById("status");
 const messagesEl = document.getElementById("messages");
 const countEl = document.getElementById("message-count");
 const bindTabBtn = document.getElementById("bind-tab");
 const unbindTabBtn = document.getElementById("unbind-tab");
+const unbindAllBtn = document.getElementById("unbind-all");
 const boundStatusEl = document.getElementById("bound-status");
+const boundTabsListEl = document.getElementById("bound-tabs-list");
 const keepaliveIndicatorEl = document.getElementById("keepalive-indicator");
 const clearMessagesBtn = document.getElementById("clear-messages");
 const passwordInput = document.getElementById("password");
@@ -29,8 +33,8 @@ const statusBannerHintEl = document.getElementById("status-banner-hint");
 const statusBannerIconEl = statusBannerEl?.querySelector(".status-banner-icon");
 
 let currentSettings = { ...DEFAULT_SETTINGS };
-let currentBoundTabId = null;
-let currentBoundTabInfo = null;
+let currentBoundTabIds = [];
+let currentBoundTabInfos = {};
 let saveTimer = null;
 let passwordSaveTimer = null;
 let refreshInterval = null;
@@ -44,12 +48,18 @@ async function init() {
   chrome.storage.onChanged.addListener(handleStorageChange);
   portInput.addEventListener("input", handlePortInput);
   autoSendInput.addEventListener("change", handleAutoSendChange);
+  if (singleTabModeInput) {
+    singleTabModeInput.addEventListener("change", handleSingleTabModeChange);
+  }
   bindTabBtn.addEventListener("click", handleBindTab);
   if (clearMessagesBtn) {
     clearMessagesBtn.addEventListener("click", handleClearMessages);
   }
   if (unbindTabBtn) {
     unbindTabBtn.addEventListener("click", handleUnbindTab);
+  }
+  if (unbindAllBtn) {
+    unbindAllBtn.addEventListener("click", handleUnbindAll);
   }
   if (passwordInput) {
     passwordInput.addEventListener("input", handlePasswordInput);
@@ -106,7 +116,7 @@ function showPasswordSaved() {
 
 function handlePasswordToggle() {
   if (!passwordInput || !eyeIcon || !eyeOffIcon) return;
-  
+
   if (passwordInput.type === "password") {
     passwordInput.type = "text";
     eyeIcon.style.display = "none";
@@ -119,7 +129,7 @@ function handlePasswordToggle() {
 }
 
 async function loadState() {
-  const { settings, messages, status, boundTabId, boundTabInfo } = await chrome.storage.local.get({
+  const { settings, messages, status, boundTabIds, boundTabInfos } = await chrome.storage.local.get({
     settings: DEFAULT_SETTINGS,
     messages: [],
     status: {
@@ -129,19 +139,19 @@ async function loadState() {
       connected: false,
       lastKeepaliveAt: null
     },
-    boundTabId: null,
-    boundTabInfo: null
+    boundTabIds: [],
+    boundTabInfos: {}
   });
 
   currentSettings = { ...DEFAULT_SETTINGS, ...settings };
-  currentBoundTabId = boundTabId ?? null;
-  currentBoundTabInfo = boundTabInfo ?? null;
+  currentBoundTabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
+  currentBoundTabInfos = boundTabInfos && typeof boundTabInfos === "object" ? boundTabInfos : {};
   renderSettings();
   renderStatus(status);
   renderMessages(messages);
-  await renderBoundStatus(currentBoundTabId, currentBoundTabInfo);
+  renderBoundStatus(currentBoundTabIds, currentBoundTabInfos);
   updateKeepaliveIndicator(status.lastKeepaliveAt);
-  updateStatusBanner(status, currentBoundTabId);
+  updateStatusBanner(status, currentBoundTabIds);
 }
 
 function handleStorageChange(changes, area) {
@@ -165,23 +175,25 @@ function handleStorageChange(changes, area) {
     renderMessages(changes.messages.newValue || []);
   }
 
-  if (changes.boundTabId) {
-    currentBoundTabId = changes.boundTabId.newValue ?? null;
+  if (changes.boundTabIds) {
+    currentBoundTabIds = Array.isArray(changes.boundTabIds.newValue) ? changes.boundTabIds.newValue : [];
     boundChanged = true;
   }
 
-  if (changes.boundTabInfo) {
-    currentBoundTabInfo = changes.boundTabInfo.newValue ?? null;
+  if (changes.boundTabInfos) {
+    currentBoundTabInfos = changes.boundTabInfos.newValue && typeof changes.boundTabInfos.newValue === "object"
+      ? changes.boundTabInfos.newValue
+      : {};
     boundChanged = true;
   }
 
   if (boundChanged) {
-    renderBoundStatus(currentBoundTabId, currentBoundTabInfo);
+    renderBoundStatus(currentBoundTabIds, currentBoundTabInfos);
   }
 
   if (statusChanged || boundChanged) {
     chrome.storage.local.get("status").then(({ status }) => {
-      updateStatusBanner(status, currentBoundTabId);
+      updateStatusBanner(status, currentBoundTabIds);
     });
   }
 }
@@ -198,11 +210,33 @@ async function handleBindTab() {
 }
 
 async function handleUnbindTab() {
+  // Legacy: unbind all tabs (for single-tab mode compatibility)
   try {
     await chrome.runtime.sendMessage({ type: "UNBIND_TAB" });
   } catch (err) {
     console.error("Failed to unbind tab", err);
   }
+}
+
+async function handleUnbindAll() {
+  try {
+    await chrome.runtime.sendMessage({ type: "UNBIND_TAB" }); // No tabId = unbind all
+  } catch (err) {
+    console.error("Failed to unbind all tabs", err);
+  }
+}
+
+async function handleUnbindSingleTab(tabId) {
+  try {
+    await chrome.runtime.sendMessage({ type: "UNBIND_TAB", tabId });
+  } catch (err) {
+    console.error("Failed to unbind tab", tabId, err);
+  }
+}
+
+function handleSingleTabModeChange() {
+  if (!singleTabModeInput) return;
+  scheduleSave({ ...currentSettings, singleTabBindingMode: singleTabModeInput.checked });
 }
 
 async function handleClearMessages() {
@@ -214,36 +248,59 @@ async function handleClearMessages() {
   }
 }
 
-async function renderBoundStatus(boundTabId, boundTabInfo) {
-  if (boundTabId == null) {
-    boundStatusEl.textContent = "No tab bound";
+function renderBoundStatus(boundTabIds, boundTabInfos) {
+  const tabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
+  const tabInfos = boundTabInfos && typeof boundTabInfos === "object" ? boundTabInfos : {};
+
+  // Update unbind buttons state
+  if (unbindTabBtn) unbindTabBtn.disabled = tabIds.length === 0;
+  if (unbindAllBtn) unbindAllBtn.disabled = tabIds.length === 0;
+
+  // Update summary text
+  if (tabIds.length === 0) {
+    boundStatusEl.textContent = "No tabs bound";
     boundStatusEl.title = "";
-    if (unbindTabBtn) unbindTabBtn.disabled = true;
-    return;
-  }
-
-  if (unbindTabBtn) unbindTabBtn.disabled = false;
-
-  if (boundTabInfo && boundTabInfo.id === boundTabId) {
-    const label = formatBoundTabLabel(boundTabInfo);
+  } else if (tabIds.length === 1) {
+    const info = tabInfos[tabIds[0]];
+    const label = info ? formatBoundTabLabel(info) : `Tab ${tabIds[0]}`;
     boundStatusEl.textContent = `Bound to: ${label}`;
-    boundStatusEl.title = boundTabInfo.url || "";
-    return;
+    boundStatusEl.title = info?.url || "";
+  } else {
+    boundStatusEl.textContent = `Bound to ${tabIds.length} tabs`;
+    boundStatusEl.title = "";
   }
 
-  try {
-    const tab = await chrome.tabs.get(boundTabId);
-    if (tab) {
-      const label = formatBoundTabLabel(tab);
-      boundStatusEl.textContent = `Bound to: ${label}`;
-      boundStatusEl.title = tab.url || "";
-    } else {
-      boundStatusEl.textContent = "Bound tab missing";
-      boundStatusEl.title = "";
+  // Render list of bound tabs if element exists
+  if (boundTabsListEl) {
+    boundTabsListEl.innerHTML = "";
+
+    if (tabIds.length === 0) {
+      boundTabsListEl.style.display = "none";
+      return;
     }
-  } catch {
-    boundStatusEl.textContent = "Bound tab closed";
-    boundStatusEl.title = "";
+
+    boundTabsListEl.style.display = "block";
+
+    for (const tabId of tabIds) {
+      const info = tabInfos[tabId];
+      const item = document.createElement("div");
+      item.className = "bound-tab-item";
+
+      const label = document.createElement("span");
+      label.className = "bound-tab-label";
+      label.textContent = info ? formatBoundTabLabel(info) : `Tab ${tabId}`;
+      label.title = info?.url || "";
+
+      const unbindBtn = document.createElement("button");
+      unbindBtn.type = "button";
+      unbindBtn.className = "btn-unbind-single";
+      unbindBtn.textContent = "×";
+      unbindBtn.title = "Unbind this tab";
+      unbindBtn.addEventListener("click", () => handleUnbindSingleTab(tabId));
+
+      item.append(label, unbindBtn);
+      boundTabsListEl.appendChild(item);
+    }
   }
 }
 
@@ -327,6 +384,9 @@ function renderSettings() {
     portInput.value = currentSettings.port ?? DEFAULT_SETTINGS.port;
   }
   autoSendInput.checked = currentSettings.autoSend !== false;
+  if (singleTabModeInput) {
+    singleTabModeInput.checked = currentSettings.singleTabBindingMode !== false;
+  }
   serverUrlEl.textContent = `http://${currentSettings.host}:${currentSettings.port}`;
 }
 
@@ -368,11 +428,12 @@ function renderStatus(status) {
 /**
  * Updates the prominent status banner based on connection and binding state
  */
-function updateStatusBanner(status, boundTabId) {
+function updateStatusBanner(status, boundTabIds) {
   if (!statusBannerEl) return;
 
   const isConnected = status?.connected && !status?.lastError;
-  const isBound = boundTabId != null;
+  const tabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
+  const isBound = tabIds.length > 0;
 
   // SVG icons for different states
   const disconnectedIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -418,9 +479,10 @@ function updateStatusBanner(status, boundTabId) {
     // Fully ready
     statusBannerEl.classList.add("ready");
     if (statusBannerIconEl) statusBannerIconEl.innerHTML = readyIcon;
-    if (statusBannerTitleEl) statusBannerTitleEl.textContent = "Ready";
+    if (statusBannerTitleEl) statusBannerTitleEl.textContent = tabIds.length > 1 ? `Ready (${tabIds.length} tabs)` : "Ready";
     if (statusBannerHintEl) {
-      statusBannerHintEl.textContent = "Messages from Handy will be sent to the bound tab automatically.";
+      const tabWord = tabIds.length > 1 ? "bound tabs" : "the bound tab";
+      statusBannerHintEl.textContent = `Messages from Handy will be sent to ${tabWord} automatically.`;
     }
   }
 }

@@ -8,6 +8,8 @@ async function ensureDefaults() {
     cursor: null,
     boundTabId: null,
     boundTabInfo: null,
+    boundTabIds: [],
+    boundTabInfos: {},
     recentMessageIds: [],
     pendingBundles: {}
   });
@@ -25,8 +27,6 @@ async function ensureDefaults() {
     }
   }
   if (stored.cursor === undefined) updates.cursor = null;
-  if (stored.boundTabId === undefined) updates.boundTabId = null;
-  if (stored.boundTabInfo === undefined) updates.boundTabInfo = null;
   if (!Array.isArray(stored.recentMessageIds)) updates.recentMessageIds = [];
   if (!stored.pendingBundles || typeof stored.pendingBundles !== "object" || Array.isArray(stored.pendingBundles)) {
     updates.pendingBundles = {};
@@ -35,16 +35,59 @@ async function ensureDefaults() {
     updates.settings = mergedSettings;
   }
 
+  // Migrate from old single-tab format to new multi-tab format
+  if (Number.isInteger(stored.boundTabId) && !stored.boundTabIds?.length) {
+    updates.boundTabIds = [stored.boundTabId];
+    if (stored.boundTabInfo && stored.boundTabInfo.id === stored.boundTabId) {
+      updates.boundTabInfos = { [stored.boundTabId]: stored.boundTabInfo };
+    } else {
+      try {
+        const tab = await chrome.tabs.get(stored.boundTabId);
+        updates.boundTabInfos = { [stored.boundTabId]: buildTabInfo(tab) };
+      } catch {
+        updates.boundTabIds = [];
+        updates.boundTabInfos = {};
+      }
+    }
+    updates.boundTabId = null;
+    updates.boundTabInfo = null;
+  }
+
+  // Ensure array format
+  if (!Array.isArray(stored.boundTabIds) && !updates.boundTabIds) {
+    updates.boundTabIds = [];
+  }
+  if ((!stored.boundTabInfos || typeof stored.boundTabInfos !== "object" || Array.isArray(stored.boundTabInfos)) && !updates.boundTabInfos) {
+    updates.boundTabInfos = {};
+  }
+
+  // Clean up legacy fields if present and new fields initialized
+  if (stored.boundTabId !== undefined) {
+    updates.boundTabId = null;
+    updates.boundTabInfo = null;
+  }
+
   if (Object.keys(updates).length) {
     await chrome.storage.local.set(updates);
   }
 
-  if (Number.isInteger(stored.boundTabId) && !stored.boundTabInfo) {
-    try {
-      const tab = await chrome.tabs.get(stored.boundTabId);
-      await chrome.storage.local.set({ boundTabInfo: buildTabInfo(tab) });
-    } catch {
-      await chrome.storage.local.set({ boundTabId: null, boundTabInfo: null });
+  // Validate bound tabs still exist
+  const currentIds = updates.boundTabIds ?? stored.boundTabIds ?? [];
+  const currentInfos = updates.boundTabInfos ?? stored.boundTabInfos ?? {};
+  if (currentIds.length > 0) {
+    const validIds = [];
+    const validInfos = {};
+    for (const tabId of currentIds) {
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        validIds.push(tabId);
+        validInfos[tabId] = currentInfos[tabId] || buildTabInfo(tab);
+      } catch {
+        // Tab no longer exists
+      }
+    }
+    if (validIds.length !== currentIds.length) {
+      await chrome.storage.local.set({ boundTabIds: validIds, boundTabInfos: validInfos });
     }
   }
 }
@@ -70,11 +113,15 @@ function buildTabInfo(tab) {
   };
 }
 
-async function bindTabById(tabId) {
+async function bindTabById(tabId, options = {}) {
+  const forceReplace = options.forceReplace ?? false;
+
   if (!Number.isInteger(tabId)) {
-    await chrome.storage.local.set({ boundTabId: null, boundTabInfo: null });
     return null;
   }
+
+  const settings = await getSettings();
+  const singleMode = settings.singleTabBindingMode !== false;
 
   let info = null;
   try {
@@ -84,8 +131,50 @@ async function bindTabById(tabId) {
     info = { id: tabId, title: "", url: "" };
   }
 
-  await chrome.storage.local.set({ boundTabId: tabId, boundTabInfo: info });
+  const stored = await chrome.storage.local.get({ boundTabIds: [], boundTabInfos: {} });
+  let boundTabIds = Array.isArray(stored.boundTabIds) ? [...stored.boundTabIds] : [];
+  let boundTabInfos = stored.boundTabInfos && typeof stored.boundTabInfos === "object" ? { ...stored.boundTabInfos } : {};
+
+  // If already bound, just update info
+  if (boundTabIds.includes(tabId)) {
+    boundTabInfos[tabId] = info;
+    await chrome.storage.local.set({ boundTabIds, boundTabInfos });
+    return info;
+  }
+
+  // In single mode or forceReplace, clear other bindings
+  if (singleMode || forceReplace) {
+    boundTabIds = [tabId];
+    boundTabInfos = { [tabId]: info };
+  } else {
+    boundTabIds.push(tabId);
+    boundTabInfos[tabId] = info;
+  }
+
+  await chrome.storage.local.set({ boundTabIds, boundTabInfos });
   return info;
+}
+
+async function unbindTabById(tabId) {
+  if (!Number.isInteger(tabId)) {
+    return;
+  }
+
+  const stored = await chrome.storage.local.get({ boundTabIds: [], boundTabInfos: {} });
+  let boundTabIds = Array.isArray(stored.boundTabIds) ? [...stored.boundTabIds] : [];
+  let boundTabInfos = stored.boundTabInfos && typeof stored.boundTabInfos === "object" ? { ...stored.boundTabInfos } : {};
+
+  const idx = boundTabIds.indexOf(tabId);
+  if (idx === -1) return;
+
+  boundTabIds.splice(idx, 1);
+  delete boundTabInfos[tabId];
+
+  await chrome.storage.local.set({ boundTabIds, boundTabInfos });
+}
+
+async function unbindAllTabs() {
+  await chrome.storage.local.set({ boundTabIds: [], boundTabInfos: {} });
 }
 
 async function toggleBindForSender(sender) {
@@ -94,9 +183,11 @@ async function toggleBindForSender(sender) {
     throw new Error("No sender tab available for bind toggle");
   }
 
-  const { boundTabId } = await chrome.storage.local.get({ boundTabId: null });
-  if (boundTabId === senderTabId) {
-    await chrome.storage.local.set({ boundTabId: null, boundTabInfo: null });
+  const stored = await chrome.storage.local.get({ boundTabIds: [] });
+  const boundTabIds = Array.isArray(stored.boundTabIds) ? stored.boundTabIds : [];
+
+  if (boundTabIds.includes(senderTabId)) {
+    await unbindTabById(senderTabId);
     return null;
   }
 

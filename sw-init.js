@@ -27,17 +27,21 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (!changeInfo.title && !changeInfo.url) return;
-  chrome.storage.local.get({ boundTabId: null }).then(({ boundTabId }) => {
-    if (boundTabId !== tabId) return;
+  chrome.storage.local.get({ boundTabIds: [], boundTabInfos: {} }).then(({ boundTabIds, boundTabInfos }) => {
+    if (!Array.isArray(boundTabIds) || !boundTabIds.includes(tabId)) return;
     const info = buildTabInfo(tab);
-    chrome.storage.local.set({ boundTabInfo: info });
+    const updatedInfos = { ...boundTabInfos, [tabId]: info };
+    chrome.storage.local.set({ boundTabInfos: updatedInfos });
   });
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  chrome.storage.local.get({ boundTabId: null }).then(({ boundTabId }) => {
-    if (boundTabId !== tabId) return;
-    chrome.storage.local.set({ boundTabId: null, boundTabInfo: null });
+  chrome.storage.local.get({ boundTabIds: [], boundTabInfos: {} }).then(({ boundTabIds, boundTabInfos }) => {
+    if (!Array.isArray(boundTabIds) || !boundTabIds.includes(tabId)) return;
+    const updatedIds = boundTabIds.filter(id => id !== tabId);
+    const updatedInfos = { ...boundTabInfos };
+    delete updatedInfos[tabId];
+    chrome.storage.local.set({ boundTabIds: updatedIds, boundTabInfos: updatedInfos });
   });
 });
 
@@ -61,7 +65,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
   if (message?.type === "UNBIND_TAB") {
-    chrome.storage.local.set({ boundTabId: null, boundTabInfo: null })
+    const tabIdToUnbind = message.tabId;
+    const unbindPromise = Number.isInteger(tabIdToUnbind)
+      ? unbindTabById(tabIdToUnbind)
+      : unbindAllTabs();
+    unbindPromise
       .then(() => sendResponse({ ok: true }))
       .catch((err) => sendResponse({ ok: false, error: err.message }));
     return true;

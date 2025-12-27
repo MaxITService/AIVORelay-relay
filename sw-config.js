@@ -7,7 +7,8 @@ const DEFAULT_SETTINGS = {
   pollMinutes: 0.1,
   timeoutMs: 3000,
   autoSend: true,
-  maxStoredMessages: 5
+  maxStoredMessages: 5,
+  singleTabBindingMode: true
 };
 
 const DEFAULT_PASSWORD = "fklejqwhfiu342lhk3";

@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
@@ -33,8 +33,11 @@
         padding: 14px;
         font-family: "Trebuchet MS", "Gill Sans", "Calibri", sans-serif;
         color: var(--text);
-        background:
-          radial-gradient(circle at top, var(--bg-accent), transparent 58%),
+        background: radial-gradient(
+            circle at top,
+            var(--bg-accent),
+            transparent 58%
+          ),
           linear-gradient(160deg, #f7f1e6, var(--bg));
       }
 
@@ -492,6 +495,49 @@
         gap: 8px;
       }
 
+      .bound-tabs-list {
+        margin-top: 8px;
+        display: grid;
+        gap: 4px;
+        max-height: 100px;
+        overflow-y: auto;
+      }
+
+      .bound-tab-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px 8px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 11px;
+      }
+
+      .bound-tab-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text);
+      }
+
+      .btn-unbind-single {
+        background: none;
+        border: none;
+        color: var(--error);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 0 4px;
+        opacity: 0.6;
+        transition: opacity 140ms ease;
+      }
+
+      .btn-unbind-single:hover {
+        opacity: 1;
+      }
+
       @keyframes rise {
         from {
           opacity: 0;
@@ -506,46 +552,99 @@
   </head>
   <body>
     <header>
-      <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px">
         <h1>Handy Connector</h1>
-        <div id="keepalive-indicator" class="keepalive-indicator" title="Keepalive Status"></div>
+        <div
+          id="keepalive-indicator"
+          class="keepalive-indicator"
+          title="Keepalive Status"
+        ></div>
       </div>
       <span class="badge" id="message-count">0</span>
     </header>
 
     <!-- Status Banner -->
     <div id="status-banner" class="status-banner disconnected">
-      <svg class="status-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        class="status-banner-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
       <div class="status-banner-text">
         <div id="status-banner-title">Disconnected</div>
-        <div id="status-banner-hint" class="status-banner-hint">Waiting for connection to Handy app...</div>
+        <div id="status-banner-hint" class="status-banner-hint">
+          Waiting for connection to Handy app...
+        </div>
       </div>
     </div>
 
     <section class="card">
       <label for="port">Port</label>
-      <input id="port" type="number" min="1" max="65535" step="1" inputmode="numeric" />
+      <input
+        id="port"
+        type="number"
+        min="1"
+        max="65535"
+        step="1"
+        inputmode="numeric"
+      />
       <div class="server">
         <span>Server</span>
         <span class="server-url" id="server-url"></span>
       </div>
       <div class="status" id="status"></div>
 
-      <div style="margin-top: 10px;">
-        <label for="password">Connection Password <span id="password-saved" class="password-saved">Saved</span></label>
+      <div style="margin-top: 10px">
+        <label for="password"
+          >Connection Password
+          <span id="password-saved" class="password-saved">Saved</span></label
+        >
         <div class="password-wrapper">
-          <input id="password" type="password" class="password-input" autocomplete="off" />
-          <button type="button" id="password-toggle" class="password-toggle" title="Show/hide password">
-            <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <input
+            id="password"
+            type="password"
+            class="password-input"
+            autocomplete="off"
+          />
+          <button
+            type="button"
+            id="password-toggle"
+            class="password-toggle"
+            title="Show/hide password"
+          >
+            <svg
+              id="eye-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
               <circle cx="12" cy="12" r="3"></circle>
             </svg>
-            <svg id="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+            <svg
+              id="eye-off-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="display: none"
+            >
+              <path
+                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+              ></path>
               <line x1="1" y1="1" x2="23" y2="23"></line>
             </svg>
           </button>
@@ -557,28 +656,64 @@
           <input id="auto-send" type="checkbox" />
           Auto-send
         </label>
-        <span style="font-size: 11px;">On by default</span>
+        <span style="font-size: 11px">On by default</span>
       </div>
-      
+
+      <div class="toggle-row">
+        <label class="toggle-label" for="single-tab-mode">
+          <input id="single-tab-mode" type="checkbox" checked />
+          Single tab mode
+        </label>
+        <span style="font-size: 11px">Auto-unbind others when binding new</span>
+      </div>
+
       <div class="port-actions">
         <div class="tab-actions">
           <button id="bind-tab" class="btn-primary">Bind to Tab</button>
-          <button id="unbind-tab" class="btn-secondary" disabled>Unbind</button>
+          <button
+            id="unbind-tab"
+            class="btn-secondary"
+            disabled
+            style="display: none"
+          >
+            Unbind
+          </button>
+          <button id="unbind-all" class="btn-secondary" disabled>
+            Unbind All
+          </button>
         </div>
-        <span id="bound-status" style="font-size: 11px; color: var(--muted); flex: 1; text-align: right;">No tab bound</span>
+        <span
+          id="bound-status"
+          style="
+            font-size: 11px;
+            color: var(--muted);
+            flex: 1;
+            text-align: right;
+          "
+          >No tabs bound</span
+        >
       </div>
 
+      <div
+        id="bound-tabs-list"
+        class="bound-tabs-list"
+        style="display: none"
+      ></div>
+
       <div class="help-text">
-        <strong>Tab Binding:</strong> Navigate to your AI chat website, then click "Bind to Tab".
-        Messages from Handy will be typed into the bound tab automatically.
-        If your Handy app is configured to auto-open tabs, a new tab will open and bind automatically when no tab is bound.
+        <strong>Tab Binding:</strong> Navigate to your AI chat website, then
+        click "Bind to Tab". Messages from Handy will be typed into bound tabs
+        automatically. In single tab mode, binding a new tab unbinds others.
+        Turn off single tab mode to bind multiple tabs simultaneously.
       </div>
     </section>
 
     <section class="card">
       <div class="messages-header">
         <span>Messages</span>
-        <button id="clear-messages" class="btn-danger" type="button">Clear</button>
+        <button id="clear-messages" class="btn-danger" type="button">
+          Clear
+        </button>
       </div>
       <div class="messages" id="messages"></div>
     </section>

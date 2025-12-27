@@ -17,8 +17,9 @@ async function pollOnce() {
       status: STATUS_DEFAULT,
       pendingBundles: {},
       recentMessageIds: [],
-      boundTabId: null
+      boundTabIds: []
     });
+    const boundTabIds = Array.isArray(stored.boundTabIds) ? stored.boundTabIds : [];
 
     let messageList = Array.isArray(stored.messages) ? [...stored.messages] : [];
     let pendingBundles = normalizePendingBundles(stored.pendingBundles);
@@ -77,7 +78,7 @@ async function pollOnce() {
     // Extract server config for auto-open functionality
     const serverConfig = parsedResponse.config || null;
 
-    const wasBound = !!stored.boundTabId;
+    const wasBound = boundTabIds.length > 0;
 
     for (const msg of regularMessages) {
       if (isDuplicateMessage(msg, dedupeSet, pendingBundles)) continue;
@@ -93,7 +94,7 @@ async function pollOnce() {
       }
 
       const storedMessage = buildStoredMessage(msg, { status: "ok", errors: [], wasBound });
-      const delivery = await deliverToBoundTab(stored.boundTabId, buildForwardPayload(msg, [], "ok"), serverConfig);
+      const delivery = await deliverToBoundTabs(boundTabIds, buildForwardPayload(msg, [], "ok"), serverConfig);
       messageList = applyDeliveryStatus(messageList, msg.id, delivery);
       messageList = upsertMessageList(messageList, storedMessage);
       dedupeSet.add(msg.id);
@@ -102,7 +103,7 @@ async function pollOnce() {
     const bundleOutcome = await processPendingBundles(
       pendingBundles,
       settings,
-      stored.boundTabId,
+      boundTabIds,
       messageList,
       dedupeSet,
       serverConfig
@@ -149,13 +150,14 @@ async function pollOnce() {
   }
 }
 
-async function processPendingBundles(pendingBundles, settings, boundTabId, messageList, dedupeSet, serverConfig = null) {
+async function processPendingBundles(pendingBundles, settings, boundTabIds, messageList, dedupeSet, serverConfig = null) {
   const pendingIds = Object.keys(pendingBundles);
   if (!pendingIds.length) {
     return { pendingBundles, messageList, dedupeSet };
   }
 
-  const wasBound = !!boundTabId;
+  const tabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
+  const wasBound = tabIds.length > 0;
 
   for (const id of pendingIds) {
     const entry = pendingBundles[id];
@@ -180,7 +182,7 @@ async function processPendingBundles(pendingBundles, settings, boundTabId, messa
         sha256: attachment.sha256
       }));
       const payload = buildForwardPayload(entry, payloadAttachments, "ok");
-      const delivery = await deliverToBoundTab(boundTabId, payload, serverConfig);
+      const delivery = await deliverToBoundTabs(tabIds, payload, serverConfig);
       messageList = applyDeliveryStatus(messageList, entry.id, delivery);
       messageList = upsertMessageList(messageList, buildStoredMessage(entry, {
         status: "ok",
@@ -205,7 +207,7 @@ async function processPendingBundles(pendingBundles, settings, boundTabId, messa
 
     console.warn("[handy-connector] Bundle failed", entry.id, result.errors);
     const payload = buildForwardPayload(entry, [], "error", result.errors);
-    const delivery = await deliverToBoundTab(boundTabId, payload, serverConfig);
+    const delivery = await deliverToBoundTabs(tabIds, payload, serverConfig);
     messageList = applyDeliveryStatus(messageList, entry.id, {
       ...delivery,
       overrideStatus: "bundle_error"
@@ -229,43 +231,68 @@ function isDuplicateMessage(message, dedupeSet, pendingBundles) {
   return false;
 }
 
-async function deliverToBoundTab(boundTabId, payload, serverConfig = null) {
-  // If no bound tab but server provided autoOpenTabUrl, create a new tab
-  if (!boundTabId && serverConfig?.autoOpenTabUrl) {
+async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null) {
+  let tabIds = Array.isArray(boundTabIds) ? [...boundTabIds] : [];
+
+  // If no bound tabs but server provided autoOpenTabUrl, create a new tab
+  if (tabIds.length === 0 && serverConfig?.autoOpenTabUrl) {
     try {
-      console.log("[handy-connector] No bound tab, auto-opening:", serverConfig.autoOpenTabUrl);
+      console.log("[handy-connector] No bound tabs, auto-opening:", serverConfig.autoOpenTabUrl);
       const newTab = await chrome.tabs.create({
         url: serverConfig.autoOpenTabUrl,
         active: true
       });
-      
+
       // Wait for tab to load before binding
       await waitForTabLoad(newTab.id);
-      
+
       // Bind to the new tab
       await bindTabById(newTab.id);
-      boundTabId = newTab.id;
+      tabIds = [newTab.id];
       console.log("[handy-connector] Auto-bound to new tab:", newTab.id);
     } catch (err) {
       console.warn("[handy-connector] Failed to auto-open tab:", err);
       return { ok: false, reason: "auto_open_failed", error: err?.message || String(err) };
     }
   }
-  
-  if (!boundTabId) {
-    return { ok: false, reason: "unbound", detail: "No bound tab" };
+
+  if (tabIds.length === 0) {
+    return { ok: false, reason: "unbound", detail: "No bound tabs" };
   }
-  try {
-    await chrome.tabs.sendMessage(boundTabId, {
-      type: "NEW_MESSAGE",
-      payload,
-      text: payload?.text
-    });
-    return { ok: true };
-  } catch (err) {
-    console.warn("[handy-connector] Failed to send message to tab", boundTabId, err);
-    return { ok: false, reason: "send_failed", error: err?.message || String(err) };
+
+  // Deliver to all bound tabs
+  const results = [];
+  for (const tabId of tabIds) {
+    try {
+      await chrome.tabs.sendMessage(tabId, {
+        type: "NEW_MESSAGE",
+        payload,
+        text: payload?.text
+      });
+      results.push({ tabId, ok: true });
+    } catch (err) {
+      console.warn("[handy-connector] Failed to send message to tab", tabId, err);
+      results.push({ tabId, ok: false, error: err?.message || String(err) });
+    }
   }
+
+  // Return aggregate status - ok if at least one succeeded
+  const anyOk = results.some(r => r.ok);
+  const allOk = results.every(r => r.ok);
+  const failedCount = results.filter(r => !r.ok).length;
+
+  if (allOk) {
+    return { ok: true, deliveredCount: results.length };
+  }
+  if (anyOk) {
+    return { ok: true, deliveredCount: results.length - failedCount, partialFailure: true, failedCount };
+  }
+  return { ok: false, reason: "send_failed", error: "All deliveries failed", failedCount };
+}
+
+// Legacy single-tab delivery (used by retryMessage)
+async function deliverToBoundTab(boundTabId, payload, serverConfig = null) {
+  return deliverToBoundTabs(boundTabId ? [boundTabId] : [], payload, serverConfig);
 }
 
 /**
@@ -277,7 +304,7 @@ async function deliverToBoundTab(boundTabId, payload, serverConfig = null) {
 async function waitForTabLoad(tabId, timeoutMs = 10000) {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
-    
+
     const checkTab = async () => {
       try {
         const tab = await chrome.tabs.get(tabId);
@@ -285,18 +312,18 @@ async function waitForTabLoad(tabId, timeoutMs = 10000) {
           resolve();
           return;
         }
-        
+
         if (Date.now() - startTime > timeoutMs) {
           resolve(); // Resolve anyway after timeout
           return;
         }
-        
+
         setTimeout(checkTab, 200);
       } catch (err) {
         reject(err);
       }
     };
-    
+
     checkTab();
   });
 }
@@ -317,10 +344,11 @@ async function retryMessage(messageId) {
   const stored = await chrome.storage.local.get({
     messages: [],
     pendingBundles: {},
-    boundTabId: null,
+    boundTabIds: [],
     recentMessageIds: []
   });
 
+  const boundTabIds = Array.isArray(stored.boundTabIds) ? stored.boundTabIds : [];
   const messageList = Array.isArray(stored.messages) ? [...stored.messages] : [];
   const target = messageList.find((msg) => msg.id === messageId);
   if (!target) throw new Error("Message not found");
@@ -352,7 +380,7 @@ async function retryMessage(messageId) {
     const outcome = await processPendingBundles(
       pendingBundles,
       settings,
-      stored.boundTabId,
+      boundTabIds,
       updated,
       dedupeSet
     );
@@ -366,7 +394,7 @@ async function retryMessage(messageId) {
   }
 
   const payload = buildForwardPayload(target, [], "ok");
-  const delivery = await deliverToBoundTab(stored.boundTabId, payload);
+  const delivery = await deliverToBoundTabs(boundTabIds, payload);
   const updated = applyDeliveryStatus(messageList, target.id, {
     ...delivery,
     overrideStatus: delivery.ok ? "queued" : delivery.reason

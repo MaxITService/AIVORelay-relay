@@ -24,8 +24,8 @@ let floatingState = {
   settings: { ...UI_DEFAULT_SETTINGS },
   status: null,
   messages: [],
-  boundTabId: null,
-  boundTabInfo: null
+  boundTabIds: [],
+  boundTabInfos: {}
 };
 
 let floatingEls = null;
@@ -357,6 +357,9 @@ function initFloatingUi() {
 
   floatingEls.portInput.addEventListener("input", handlePortInputChange);
   floatingEls.autoSendInput.addEventListener("change", handleAutoSendChange);
+  if (floatingEls.singleTabModeInput) {
+    floatingEls.singleTabModeInput.addEventListener("change", handleSingleTabModeChange);
+  }
   if (floatingEls.clearMessagesBtn) {
     floatingEls.clearMessagesBtn.addEventListener("click", () => {
       void clearStoredMessages();
@@ -784,6 +787,10 @@ function buildFloatingUi() {
           <input id="hc-auto-send" type="checkbox" />
           Auto-send
         </label>
+        <label class="hc-checkbox">
+          <input id="hc-single-tab-mode" type="checkbox" />
+          Single tab mode
+        </label>
       </div>
       <div class="hc-section">
         <div class="hc-messages-header">
@@ -810,6 +817,7 @@ function buildFloatingUi() {
     statusEl: root.querySelector("#hc-status"),
     portInput: root.querySelector("#hc-port"),
     autoSendInput: root.querySelector("#hc-auto-send"),
+    singleTabModeInput: root.querySelector("#hc-single-tab-mode"),
     messageCountEl: root.querySelector("#hc-message-count"),
     clearMessagesBtn: root.querySelector("#hc-clear-messages"),
     messagesEl: root.querySelector("#hc-messages")
@@ -975,8 +983,8 @@ async function refreshFloatingState() {
     settings: { ...UI_DEFAULT_SETTINGS, ...stored.settings },
     status: stored.status || null,
     messages: Array.isArray(stored.messages) ? stored.messages : [],
-    boundTabId: stored.boundTabId ?? null,
-    boundTabInfo: stored.boundTabInfo ?? null
+    boundTabIds: Array.isArray(stored.boundTabIds) ? stored.boundTabIds : [],
+    boundTabInfos: (stored.boundTabInfos && typeof stored.boundTabInfos === "object") ? stored.boundTabInfos : {}
   };
 
   currentTabId = await getCurrentTabId();
@@ -1003,12 +1011,16 @@ function handleFloatingStorageChange(changes, area) {
       : [];
   }
 
-  if (changes.boundTabId) {
-    floatingState.boundTabId = changes.boundTabId.newValue ?? null;
+  if (changes.boundTabIds) {
+    floatingState.boundTabIds = Array.isArray(changes.boundTabIds.newValue)
+      ? changes.boundTabIds.newValue
+      : [];
   }
 
-  if (changes.boundTabInfo) {
-    floatingState.boundTabInfo = changes.boundTabInfo.newValue ?? null;
+  if (changes.boundTabInfos) {
+    floatingState.boundTabInfos = (changes.boundTabInfos.newValue && typeof changes.boundTabInfos.newValue === "object")
+      ? changes.boundTabInfos.newValue
+      : {};
   }
 
   renderFloatingUi();
@@ -1028,6 +1040,9 @@ function renderFloatingSettings() {
     floatingEls.portInput.value = settings.port ?? UI_DEFAULT_SETTINGS.port;
   }
   floatingEls.autoSendInput.checked = settings.autoSend !== false;
+  if (floatingEls.singleTabModeInput) {
+    floatingEls.singleTabModeInput.checked = settings.singleTabBindingMode !== false;
+  }
   floatingEls.serverUrlEl.textContent = `http://${settings.host}:${settings.port}`;
 }
 
@@ -1291,25 +1306,19 @@ function clearAttachmentPreviewCache() {
 }
 
 function renderFloatingBinding() {
-  const boundTabId = floatingState.boundTabId;
-  const boundTabInfo = floatingState.boundTabInfo;
-  const isBoundToCurrent = Number.isInteger(currentTabId) && boundTabId === currentTabId;
+  const boundTabIds = floatingState.boundTabIds || [];
+  const boundTabInfos = floatingState.boundTabInfos || {};
+  const isBoundToCurrent = Number.isInteger(currentTabId) && boundTabIds.includes(currentTabId);
 
   floatingEls.root.dataset.bound = isBoundToCurrent ? "true" : "false";
   floatingEls.bindToggleBtn.setAttribute("aria-pressed", isBoundToCurrent ? "true" : "false");
 
   let label = "No tab bound";
-  if (boundTabId != null) {
+  if (boundTabIds.length > 0) {
     if (isBoundToCurrent) {
-      label = `Bound to: ${formatTabLabel({
-        id: currentTabId,
-        title: document.title,
-        url: window.location.href
-      })}`;
-    } else if (boundTabInfo && boundTabInfo.id === boundTabId) {
-      label = `Bound to: ${formatTabLabel(boundTabInfo)}`;
+      label = `Bound: This Tab${boundTabIds.length > 1 ? ` (+${boundTabIds.length - 1} more)` : ""}`;
     } else {
-      label = "Bound to another tab";
+      label = `Bound to ${boundTabIds.length} tab${boundTabIds.length > 1 ? "s" : ""}`;
     }
   }
 
@@ -1330,6 +1339,10 @@ function handlePortInputChange() {
 
 function handleAutoSendChange() {
   scheduleSettingsSave({ ...floatingState.settings, autoSend: floatingEls.autoSendInput.checked });
+}
+
+function handleSingleTabModeChange() {
+  scheduleSettingsSave({ ...floatingState.settings, singleTabBindingMode: floatingEls.singleTabModeInput.checked });
 }
 
 function scheduleSettingsSave(nextSettings) {
