@@ -7,7 +7,7 @@
 - Attachment downloads are retried with a pending bundle queue, and recent message IDs are deduped across restarts.
 - Content script receives NEW_MESSAGE, inserts text, uploads attachments on ChatGPT, auto-sends when enabled.
 - Messages are dropped when a stop button is visible or a prior message is still in flight.
-- Supported sites: ChatGPT, Gemini, Perplexity (attachments on all), Claude, Grok, and AI Studio (text-only).
+- Supported sites: ChatGPT, Gemini, Perplexity, Claude, Grok, and AI Studio (all with attachment support).
 - Perplexity insertion uses a main-world injector script for text and a "Paste Event" simulation for attachments.
 - Auto-send toggle lives in the popup (default on, stored in chrome.storage.local).
 - Status reports are POSTed to `/messages` with type `status` and prefix `[hc-status]` to avoid loops.

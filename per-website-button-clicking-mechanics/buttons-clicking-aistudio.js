@@ -2,6 +2,7 @@
 
 async function processAIStudioIncomingMessage(payload, options = {}) {
     const text = typeof payload === "string" ? payload : (payload.text || "");
+    const attachments = payload.attachments || [];
     const editorElement = window.ButtonsClickingShared.findEditor();
 
     if (!editorElement) {
@@ -9,23 +10,95 @@ async function processAIStudioIncomingMessage(payload, options = {}) {
         return { status: "editor_not_found" };
     }
 
+    let attachmentResult = null;
+    if (attachments.length) {
+        attachmentResult = await attachFilesToAIStudio(editorElement, attachments);
+        if (attachmentResult.status !== "attached") {
+            logConCgp("[aistudio] Attachment failed:", attachmentResult.reason);
+        }
+    }
+
     const inserted = insertTextIntoAIStudioEditor(editorElement, text);
-    if (!inserted) {
-        return { status: "insert_failed" };
+    if (!inserted && (!attachments.length || attachmentResult?.status !== "attached")) {
+        return { status: "insert_failed", attachments: attachmentResult };
     }
 
     if (!options.autoSend) {
-        return { status: "pasted" };
+        return { status: "pasted", attachments: attachmentResult };
     }
 
-    // Short delay to let text settle before auto-send
+    // AI Studio needs time to process attachments
+    const hasAttachments = attachmentResult?.status === "attached";
+    const maxAttempts = hasAttachments ? 100 : 10;
+    const interval = hasAttachments ? 300 : 200;
+
     await new Promise(r => setTimeout(r, 100));
 
     return window.ButtonsClickingShared.performAutoSend({
-        interval: 200,
-        maxAttempts: 10,
+        interval,
+        maxAttempts,
         clickAction: (btn) => window.MaxExtensionUtils.simulateClick(btn)
     });
+}
+
+/**
+ * Attaches files to AI Studio by simulating a Paste event.
+ * AI Studio has no file input but responds to paste events on the textarea.
+ */
+async function attachFilesToAIStudio(editor, attachments) {
+    const files = [];
+    for (const attachment of attachments) {
+        try {
+            const file = await buildAIStudioAttachmentFile(attachment);
+            if (file) files.push(file);
+        } catch (err) {
+            logConCgp("[aistudio] Failed to build file object:", err);
+        }
+    }
+
+    if (!files.length) {
+        return { status: "failed", reason: "no_valid_files" };
+    }
+
+    try {
+        const dataTransfer = new DataTransfer();
+        for (const file of files) {
+            dataTransfer.items.add(file);
+        }
+
+        const pasteEvent = new ClipboardEvent('paste', {
+            clipboardData: dataTransfer,
+            bubbles: true,
+            cancelable: true
+        });
+
+        editor.focus();
+        editor.dispatchEvent(pasteEvent);
+        logConCgp(`[aistudio] Dispatched paste event with ${files.length} files.`);
+        return { status: "attached", count: files.length };
+    } catch (err) {
+        logConCgp("[aistudio] Paste simulation failed:", err);
+        return { status: "failed", reason: "paste_error" };
+    }
+}
+
+async function buildAIStudioAttachmentFile(attachment) {
+    const name = attachment.filename || "attachment";
+    const type = attachment.mime || "image/png";
+
+    if (attachment.bytes) {
+        const blob = new Blob([attachment.bytes], { type });
+        return new File([blob], name, { type });
+    }
+
+    if (attachment.blobUrl) {
+        const response = await fetch(attachment.blobUrl);
+        if (!response.ok) throw new Error("fetch_failed");
+        const blob = await response.blob();
+        return new File([blob], name, { type: blob.type || type });
+    }
+
+    return null;
 }
 
 function insertTextIntoAIStudioEditor(editorElement, textToInsert) {
@@ -54,3 +127,4 @@ function insertTextIntoAIStudioEditor(editorElement, textToInsert) {
 }
 
 window.processAIStudioIncomingMessage = processAIStudioIncomingMessage;
+
