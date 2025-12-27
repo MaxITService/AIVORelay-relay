@@ -2,6 +2,7 @@
 
 async function processClaudeIncomingMessage(payload, options = {}) {
     const text = typeof payload === "string" ? payload : (payload.text || "");
+    const attachments = payload.attachments || [];
     const editorElement = window.ButtonsClickingShared.findEditor();
 
     if (!editorElement) {
@@ -9,20 +10,93 @@ async function processClaudeIncomingMessage(payload, options = {}) {
         return { status: "editor_not_found" };
     }
 
+    let attachmentResult = null;
+    if (attachments.length) {
+        attachmentResult = await attachFilesToClaude(attachments);
+        if (attachmentResult.status !== "attached") {
+            logConCgp("[claude] Attachment failed:", attachmentResult.reason);
+        }
+    }
+
     const inserted = insertTextIntoClaudeEditor(editorElement, text);
-    if (!inserted) {
-        return { status: "insert_failed" };
+    if (!inserted && (!attachments.length || attachmentResult?.status !== "attached")) {
+        return { status: "insert_failed", attachments: attachmentResult };
     }
 
     if (!options.autoSend) {
-        return { status: "pasted" };
+        return { status: "pasted", attachments: attachmentResult };
     }
 
+    // Claude needs time to process attachments
+    const hasAttachments = attachmentResult?.status === "attached";
+    const maxAttempts = hasAttachments ? 100 : 25;
+    const interval = hasAttachments ? 300 : 200;
+
     return window.ButtonsClickingShared.performAutoSend({
-        interval: 200,
-        maxAttempts: 25,
+        interval,
+        maxAttempts,
         clickAction: (btn) => setTimeout(() => window.MaxExtensionUtils.simulateClick(btn), 200)
     });
+}
+
+/**
+ * Attaches files to Claude using the hidden file input.
+ * Claude accepts images and many document types.
+ */
+async function attachFilesToClaude(attachments) {
+    const fileInput = document.querySelector('input[type="file"]');
+    if (!fileInput) {
+        return { status: "failed", reason: "input_not_found" };
+    }
+
+    const files = [];
+    for (const attachment of attachments) {
+        try {
+            const file = await buildClaudeAttachmentFile(attachment);
+            if (file) files.push(file);
+        } catch (err) {
+            logConCgp("[claude] Failed to build file object:", err);
+        }
+    }
+
+    if (!files.length) {
+        return { status: "failed", reason: "no_valid_files" };
+    }
+
+    try {
+        const dataTransfer = new DataTransfer();
+        const maxFiles = fileInput.multiple ? files.length : 1;
+        for (let i = 0; i < maxFiles; i++) {
+            dataTransfer.items.add(files[i]);
+        }
+        fileInput.files = dataTransfer.files;
+        fileInput.dispatchEvent(new Event("input", { bubbles: true }));
+        fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+        logConCgp(`[claude] Injected ${maxFiles} file(s) into file input.`);
+        return { status: "attached", count: maxFiles };
+    } catch (err) {
+        logConCgp("[claude] File injection failed:", err);
+        return { status: "failed", reason: "inject_error" };
+    }
+}
+
+async function buildClaudeAttachmentFile(attachment) {
+    const name = attachment.filename || "attachment";
+    const type = attachment.mime || "image/png";
+
+    if (attachment.bytes) {
+        const blob = new Blob([attachment.bytes], { type });
+        return new File([blob], name, { type });
+    }
+
+    if (attachment.blobUrl) {
+        const response = await fetch(attachment.blobUrl);
+        if (!response.ok) throw new Error("fetch_failed");
+        const blob = await response.blob();
+        return new File([blob], name, { type: blob.type || type });
+    }
+
+    return null;
 }
 
 function insertTextIntoClaudeEditor(editorElement, textToInsert) {
@@ -92,3 +166,4 @@ function insertTextIntoClaudeEditor(editorElement, textToInsert) {
 }
 
 window.processClaudeIncomingMessage = processClaudeIncomingMessage;
+
