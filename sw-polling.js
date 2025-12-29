@@ -32,7 +32,7 @@ async function pollOnce() {
         // Show red badge on extension icon for auth failure
         chrome.action.setBadgeText({ text: "!" });
         chrome.action.setBadgeBackgroundColor({ color: "#b42318" });
-        throw new Error("Authentication failed. Check that your password matches the Handy app.");
+        throw new Error("Authentication failed. Check that your password matches the AivoRelay app.");
       }
       const bodyText = await response.text();
       throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
@@ -55,19 +55,19 @@ async function pollOnce() {
     // 1. Save the new password locally
     // 2. Send acknowledgement to server so it commits the password
     if (parsedResponse.passwordUpdate) {
-      console.log("[handy-connector] Server sent password update, saving...");
+      console.log("[aivo-relay] Server sent password update, saving...");
       const saved = await saveConnectorPassword(parsedResponse.passwordUpdate);
       if (saved) {
-        console.log("[handy-connector] Password saved successfully, sending acknowledgement...");
+        console.log("[aivo-relay] Password saved successfully, sending acknowledgement...");
         // Send ack using the NEW password (server accepts both during transition)
         const ackSent = await sendPasswordAck(settings, parsedResponse.passwordUpdate, timeoutMs);
         if (ackSent) {
-          console.log("[handy-connector] Password update complete (two-phase commit successful)");
+          console.log("[aivo-relay] Password update complete (two-phase commit successful)");
         } else {
-          console.warn("[handy-connector] Password ack failed - server may still accept old password on next poll");
+          console.warn("[aivo-relay] Password ack failed - server may still accept old password on next poll");
         }
       } else {
-        console.error("[handy-connector] CRITICAL: Failed to save new password. Extension may lose access on next request.");
+        console.error("[aivo-relay] CRITICAL: Failed to save new password. Extension may lose access on next request.");
       }
     }
 
@@ -195,7 +195,7 @@ async function processPendingBundles(pendingBundles, settings, boundTabIds, mess
     }
 
     if (result.status === "retry") {
-      console.warn("[handy-connector] Bundle retry scheduled", entry.id, result.errors);
+      console.warn("[aivo-relay] Bundle retry scheduled", entry.id, result.errors);
       pendingBundles[id] = updatedEntry;
       messageList = upsertMessageList(messageList, buildStoredMessage(entry, {
         status: "pending",
@@ -205,7 +205,7 @@ async function processPendingBundles(pendingBundles, settings, boundTabIds, mess
       continue;
     }
 
-    console.warn("[handy-connector] Bundle failed", entry.id, result.errors);
+    console.warn("[aivo-relay] Bundle failed", entry.id, result.errors);
     const payload = buildForwardPayload(entry, [], "error", result.errors);
     const delivery = await deliverToBoundTabs(tabIds, payload, serverConfig);
     messageList = applyDeliveryStatus(messageList, entry.id, {
@@ -237,7 +237,7 @@ async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null) {
   // If no bound tabs but server provided autoOpenTabUrl, create a new tab
   if (tabIds.length === 0 && serverConfig?.autoOpenTabUrl) {
     try {
-      console.log("[handy-connector] No bound tabs, auto-opening:", serverConfig.autoOpenTabUrl);
+      console.log("[aivo-relay] No bound tabs, auto-opening:", serverConfig.autoOpenTabUrl);
       const newTab = await chrome.tabs.create({
         url: serverConfig.autoOpenTabUrl,
         active: true
@@ -249,9 +249,9 @@ async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null) {
       // Bind to the new tab
       await bindTabById(newTab.id);
       tabIds = [newTab.id];
-      console.log("[handy-connector] Auto-bound to new tab:", newTab.id);
+      console.log("[aivo-relay] Auto-bound to new tab:", newTab.id);
     } catch (err) {
-      console.warn("[handy-connector] Failed to auto-open tab:", err);
+      console.warn("[aivo-relay] Failed to auto-open tab:", err);
       return { ok: false, reason: "auto_open_failed", error: err?.message || String(err) };
     }
   }
@@ -271,7 +271,7 @@ async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null) {
       });
       results.push({ tabId, ok: true });
     } catch (err) {
-      console.warn("[handy-connector] Failed to send message to tab", tabId, err);
+      console.warn("[aivo-relay] Failed to send message to tab", tabId, err);
       results.push({ tabId, ok: false, error: err?.message || String(err) });
     }
   }

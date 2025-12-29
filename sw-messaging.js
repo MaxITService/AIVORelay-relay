@@ -13,7 +13,7 @@ async function sendAck(settings) {
     const timeoutMs = Number(settings.timeoutMs) || DEFAULT_SETTINGS.timeoutMs;
     await postJsonWithTimeout(url, { type: "keepalive_ack", ts: Date.now() }, timeoutMs);
   } catch (err) {
-    console.warn("[handy-connector] Failed to send ack", err);
+    console.warn("[aivo-relay] Failed to send ack", err);
   }
 }
 

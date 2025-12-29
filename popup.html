@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Handy Connector</title>
+    <title>AivoRelay</title>
     <style>
       :root {
         color-scheme: light;
@@ -27,9 +27,16 @@
         box-sizing: border-box;
       }
 
+      html,
       body {
+        width: 800px;
+        height: 600px;
         margin: 0;
-        min-width: 320px;
+        padding: 0;
+        overflow: hidden;
+      }
+
+      body {
         padding: 14px;
         font-family: "Trebuchet MS", "Gill Sans", "Calibri", sans-serif;
         color: var(--text);
@@ -39,6 +46,9 @@
             transparent 58%
           ),
           linear-gradient(160deg, #f7f1e6, var(--bg));
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
       }
 
       header {
@@ -46,6 +56,7 @@
         align-items: center;
         justify-content: space-between;
         margin-bottom: 12px;
+        flex-shrink: 0;
       }
 
       h1 {
@@ -73,6 +84,7 @@
         border-radius: 14px;
         padding: 12px;
         box-shadow: var(--shadow);
+        flex-shrink: 0;
       }
 
       .card + .card {
@@ -206,12 +218,23 @@
         accent-color: var(--accent);
       }
 
+      .messages-card {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        min-height: 0;
+        flex-shrink: 1;
+      }
+
       .messages {
-        display: grid;
+        display: flex;
+        flex-direction: column;
         gap: 8px;
-        max-height: 320px;
-        overflow: auto;
-        padding-right: 2px;
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 4px;
+        min-height: 0;
       }
 
       .message {
@@ -346,6 +369,7 @@
         font-size: 12px;
         font-weight: 600;
         transition: all 200ms ease;
+        flex-shrink: 0;
       }
 
       .status-banner.disconnected {
@@ -553,7 +577,7 @@
   <body>
     <header>
       <div style="display: flex; align-items: center; gap: 10px">
-        <h1>Handy Connector</h1>
+        <h1>AivoRelay</h1>
         <div
           id="keepalive-indicator"
           class="keepalive-indicator"
@@ -581,7 +605,7 @@
       <div class="status-banner-text">
         <div id="status-banner-title">Disconnected</div>
         <div id="status-banner-hint" class="status-banner-hint">
-          Waiting for connection to Handy app...
+          Waiting for connection to AivoRelay app...
         </div>
       </div>
     </div>
@@ -702,13 +726,13 @@
 
       <div class="help-text">
         <strong>Tab Binding:</strong> Navigate to your AI chat website, then
-        click "Bind to Tab". Messages from Handy will be typed into bound tabs
-        automatically. In single tab mode, binding a new tab unbinds others.
-        Turn off single tab mode to bind multiple tabs simultaneously.
+        click "Bind to Tab". Messages from AivoRelay will be typed into bound
+        tabs automatically. In single tab mode, binding a new tab unbinds
+        others. Turn off single tab mode to bind multiple tabs simultaneously.
       </div>
     </section>
 
-    <section class="card">
+    <section class="card messages-card">
       <div class="messages-header">
         <span>Messages</span>
         <button id="clear-messages" class="btn-danger" type="button">

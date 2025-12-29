@@ -40,6 +40,6 @@
       targetElement.dispatchEvent(new Event("change", { bubbles: true }));
     }
   } catch (e) {
-    console.error("[handy-connector] Main world insertion failed:", e);
+    console.error("[aivo-relay] Main world insertion failed:", e);
   }
 })();

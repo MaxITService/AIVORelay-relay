@@ -28,6 +28,6 @@
  * @param  {...any} optionalParams - Additional parameters to log.
  */
 function logConCgp(message, ...optionalParams) {
-    console.log(`[handy-connector] ${message}`, ...optionalParams);
+    console.log(`[aivo-relay] ${message}`, ...optionalParams);
 }
 

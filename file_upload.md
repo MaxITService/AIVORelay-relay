@@ -31,4 +31,4 @@ Verification cues in snapshot
 - After upload: buttons "Edit image" and "Remove file" appear in the composer area.
 
 Example file path
-- C:\Code\Handy-connector\demo-image.png
+- C:\Code\AIVORelay-relay\demo-image.png

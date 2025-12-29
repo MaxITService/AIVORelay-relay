@@ -762,10 +762,10 @@ function buildFloatingUi() {
         <span class="hc-dot"></span>
       </button>
     </div>
-    <div class="hc-panel" role="dialog" aria-label="Handy Connector panel">
+    <div class="hc-panel" role="dialog" aria-label="AivoRelay panel">
       <div class="hc-panel-header hc-drag-handle">
         <div>
-          <div class="hc-title-text">Handy Connector</div>
+          <div class="hc-title-text">AivoRelay</div>
           <div class="hc-bind-text" id="hc-bind-text">No tab bound</div>
         </div>
         <button class="hc-collapse" type="button" title="Collapse">Close</button>

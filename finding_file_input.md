@@ -79,4 +79,4 @@ Because it's a Quill editor, inserting text via `innerText` can break the compon
 
 ---
 
-_Created during the Handy-connector integration of Google Gemini support._
+_Created during the AivoRelay integration of Google Gemini support._

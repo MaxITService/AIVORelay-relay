@@ -143,7 +143,7 @@ async function downloadAttachment(messageId, attachment, attemptCount, settings)
 
     const contentType = (response.headers.get("content-type") || "").toLowerCase();
     if (attachment.mime && contentType && !contentType.includes(attachment.mime.toLowerCase())) {
-      console.warn("[handy-connector] Attachment mime mismatch", {
+      console.warn("[aivo-relay] Attachment mime mismatch", {
         attId: attachment.attId,
         expected: attachment.mime,
         received: contentType
@@ -200,7 +200,7 @@ async function cacheAttachment(messageId, attachment, bytes, sha256) {
   try {
     await storeBlob(messageId, attachment.attId, bytes);
   } catch (err) {
-    console.warn("[handy-connector] Failed to persist blob to IndexedDB", err);
+    console.warn("[aivo-relay] Failed to persist blob to IndexedDB", err);
   }
 
   pruneAttachmentCache();
@@ -230,7 +230,7 @@ async function getCachedAttachment(messageId, attId) {
       return { bytes: idbEntry.bytes, sha256: null };
     }
   } catch (err) {
-    console.warn("[handy-connector] Failed to read blob from IndexedDB", err);
+    console.warn("[aivo-relay] Failed to read blob from IndexedDB", err);
   }
 
   return null;

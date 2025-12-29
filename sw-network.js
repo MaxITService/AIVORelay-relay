@@ -20,7 +20,7 @@ async function getConnectorPassword() {
  */
 async function saveConnectorPassword(password) {
   if (!password || typeof password !== "string") {
-    console.warn("[handy-connector] Attempted to save invalid password");
+    console.warn("[aivo-relay] Attempted to save invalid password");
     return false;
   }
   try {
@@ -28,13 +28,13 @@ async function saveConnectorPassword(password) {
     // Verify the save worked by reading it back
     const verify = await chrome.storage.sync.get("connectorPassword");
     if (verify.connectorPassword === password) {
-      console.log("[handy-connector] Password saved and verified");
+      console.log("[aivo-relay] Password saved and verified");
       return true;
     }
-    console.error("[handy-connector] Password save verification failed");
+    console.error("[aivo-relay] Password save verification failed");
     return false;
   } catch (err) {
-    console.error("[handy-connector] Failed to save password:", err?.message || err);
+    console.error("[aivo-relay] Failed to save password:", err?.message || err);
     return false;
   }
 }
@@ -129,16 +129,16 @@ async function sendPasswordAck(settings, newPassword, timeoutMs = 3000) {
       },
       body: JSON.stringify({ type: "password_ack" })
     });
-    
+
     if (response.ok) {
-      console.log("[handy-connector] Password acknowledgement sent successfully");
+      console.log("[aivo-relay] Password acknowledgement sent successfully");
       return true;
     } else {
-      console.error("[handy-connector] Password ack failed:", response.status);
+      console.error("[aivo-relay] Password ack failed:", response.status);
       return false;
     }
   } catch (err) {
-    console.error("[handy-connector] Failed to send password ack:", err?.message || err);
+    console.error("[aivo-relay] Failed to send password ack:", err?.message || err);
     return false;
   } finally {
     clearTimeout(timeoutId);

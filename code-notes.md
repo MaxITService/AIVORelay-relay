@@ -1,4 +1,4 @@
-# Handy Connector Notes
+# AivoRelay Notes
 
 ## Current Behavior (Dec 2025)
 
@@ -15,11 +15,11 @@
 
 ## Password Authentication
 
-- The Handy desktop app requires Bearer token authentication on its localhost server.
+- The AivoRelay desktop app requires Bearer token authentication on its localhost server.
 - Default password: `fklejqwhfiu342lhk3` (defined in `sw-config.js` and `popup.js`).
 - Password is stored in `chrome.storage.sync` under key `connectorPassword` to sync across Chrome instances.
-- All fetch requests to the Handy server include `Authorization: Bearer {password}` header.
-- If server returns 401 Unauthorized, a user-friendly error is shown: "Authentication failed. Check that your password matches the Handy app."
+- All fetch requests to the AivoRelay server include `Authorization: Bearer {password}` header.
+- If server returns 401 Unauthorized, a user-friendly error is shown: "Authentication failed. Check that your password matches the AivoRelay app."
 - Popup includes a password input field with show/hide toggle (eye icon).
 - Password auto-saves on change with debounce (500ms delay).
 - **Auto-Update Flow**: On first connection with the default password, the server generates a unique 32-char hex password and sends it in the response as `passwordUpdate`. The extension saves this immediately via `saveConnectorPassword()` and uses it for all future requests. This one-time exchange ensures each install has a unique password.

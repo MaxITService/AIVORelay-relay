@@ -1,6 +1,6 @@
-# Handy Connector Messaging Protocol
+# AivoRelay Messaging Protocol
 
-This document defines the HTTP protocol for external applications to send messages and files to the Handy Connector browser extension.
+This document defines the HTTP protocol for external applications to send messages and files to the AivoRelay browser extension.
 Any HTTP server implementing this contract can control the extension.
 
 ## Overview
@@ -67,11 +67,12 @@ Cache-Control: no-store
 
 The `config` object provides server-controlled behavior settings.
 
-| Field            | Type             | Description                                                    |
-| :--------------- | :--------------- | :------------------------------------------------------------- |
+| Field            | Type             | Description                                                     |
+| :--------------- | :--------------- | :-------------------------------------------------------------- |
 | `autoOpenTabUrl` | `string \| null` | URL to auto-open if no tab is bound. `null` or empty = disabled |
 
 When `autoOpenTabUrl` is provided and the extension has no bound tab, it will:
+
 1. Create a new browser tab with the specified URL
 2. Wait for the tab to finish loading
 3. Automatically bind to the new tab

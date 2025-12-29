@@ -1,6 +1,6 @@
 'use strict';
 
-const IDB_NAME = 'handy-connector';
+const IDB_NAME = 'aivo-relay';
 const IDB_VERSION = 1;
 const STORE_BLOBS = 'blobs';
 

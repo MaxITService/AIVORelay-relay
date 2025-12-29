@@ -1,23 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "Handy-connector",
-  "description": "A handy connector for AI interfaces",
+  "name": "AivoRelay",
+  "description": "A relay connector for AI interfaces",
   "version": "1.0.0",
   "icons": {
-    "16": "handy_icon_16x16.png",
-    "32": "handy_icon_32x32.png",
-    "48": "handy_icon_48x48.png",
-    "128": "handy_icon_128x128.png"
+    "16": "aivo_icon_16x16.png",
+    "32": "aivo_icon_32x32.png",
+    "48": "aivo_icon_48x48.png",
+    "128": "aivo_icon_128x128.png"
   },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "handy_icon_16x16.png",
-      "32": "handy_icon_32x32.png",
-      "48": "handy_icon_48x48.png",
-      "128": "handy_icon_128x128.png"
+      "16": "aivo_icon_16x16.png",
+      "32": "aivo_icon_32x32.png",
+      "48": "aivo_icon_48x48.png",
+      "128": "aivo_icon_128x128.png"
     },
-    "default_title": "Handy-connector"
+    "default_title": "AivoRelay"
   },
   "background": {
     "service_worker": "sw.js"

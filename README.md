@@ -1,4 +1,4 @@
-# Handy Connector
+# AivoRelay
 
 A Chrome extension that bridges external applications with AI chat interfaces (ChatGPT, Perplexity). Send text and files from any local application directly into your AI conversations.
 
@@ -55,11 +55,11 @@ See [`messaging-contract.md`](messaging-contract.md) for the full HTTP protocol 
 
 ### Basic Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/messages?since=<cursor>` | Poll for new messages |
-| POST | `/messages` | Receive status reports |
-| GET | `/blob/<attId>` | Download attachment files |
+| Method | Path                       | Description               |
+| ------ | -------------------------- | ------------------------- |
+| GET    | `/messages?since=<cursor>` | Poll for new messages     |
+| POST   | `/messages`                | Receive status reports    |
+| GET    | `/blob/<attId>`            | Download attachment files |
 
 ### Response Format with Auto-Open
 
@@ -92,13 +92,13 @@ For file attachments, use `type: "bundle"` with an `attachments` array.
 
 The included PowerShell test server supports quick commands:
 
-| Command | Description |
-|---------|-------------|
-| `test-image` | Send demo-image.png |
-| `test-file` | Send demo-file.txt |
-| `test-csv` | Send demo-data.csv |
+| Command       | Description            |
+| ------------- | ---------------------- |
+| `test-image`  | Send demo-image.png    |
+| `test-file`   | Send demo-file.txt     |
+| `test-csv`    | Send demo-data.csv     |
 | `test-bundle` | Send image + text file |
-| `exit` | Stop the server |
+| `exit`        | Stop the server        |
 
 ## Settings
 

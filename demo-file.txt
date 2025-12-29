@@ -1,2 +1,2 @@
-Handy Connector demo file.
+AivoRelay demo file.
 Hello from the test server.

@@ -277,7 +277,7 @@ async function trimMessageList(list) {
       try {
         await deleteBlobsForMessage(msg.id);
       } catch (err) {
-        console.warn("[handy-connector] Failed to cleanup blobs for message", msg.id, err);
+        console.warn("[aivo-relay] Failed to cleanup blobs for message", msg.id, err);
       }
     }
   }

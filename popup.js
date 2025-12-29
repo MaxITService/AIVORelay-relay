@@ -462,9 +462,9 @@ function updateStatusBanner(status, boundTabIds) {
     if (statusBannerTitleEl) statusBannerTitleEl.textContent = "Disconnected";
     if (statusBannerHintEl) {
       if (status?.lastError?.includes("Authentication")) {
-        statusBannerHintEl.textContent = "Check your connection password matches the Handy app.";
+        statusBannerHintEl.textContent = "Check your connection password matches the AivoRelay app.";
       } else {
-        statusBannerHintEl.textContent = "Make sure Handy app is running on your computer.";
+        statusBannerHintEl.textContent = "Make sure AivoRelay app is running on your computer.";
       }
     }
   } else if (!isBound) {
@@ -473,7 +473,7 @@ function updateStatusBanner(status, boundTabIds) {
     if (statusBannerIconEl) statusBannerIconEl.innerHTML = warningIcon;
     if (statusBannerTitleEl) statusBannerTitleEl.textContent = "Connected - No Tab Bound";
     if (statusBannerHintEl) {
-      statusBannerHintEl.textContent = "Bind a tab manually, or Handy may auto-open one if configured.";
+      statusBannerHintEl.textContent = "Bind a tab manually, or AivoRelay may auto-open one if configured.";
     }
   } else {
     // Fully ready
@@ -482,7 +482,7 @@ function updateStatusBanner(status, boundTabIds) {
     if (statusBannerTitleEl) statusBannerTitleEl.textContent = tabIds.length > 1 ? `Ready (${tabIds.length} tabs)` : "Ready";
     if (statusBannerHintEl) {
       const tabWord = tabIds.length > 1 ? "bound tabs" : "the bound tab";
-      statusBannerHintEl.textContent = `Messages from Handy will be sent to ${tabWord} automatically.`;
+      statusBannerHintEl.textContent = `Messages from AivoRelay will be sent to ${tabWord} automatically.`;
     }
   }
 }
