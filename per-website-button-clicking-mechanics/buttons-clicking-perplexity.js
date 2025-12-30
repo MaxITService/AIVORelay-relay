@@ -32,7 +32,7 @@ async function processPerplexityIncomingMessage(payload, options = {}) {
   const maxAttempts = hasAttachments ? 100 : 25;
   const interval = hasAttachments ? 300 : 200;
 
-  return window.ButtonsClickingShared.performAutoSend({
+  const sendResult = await window.ButtonsClickingShared.performAutoSend({
     interval,
     maxAttempts,
     isEnabled: isPerplexityButtonEnabled,
@@ -41,6 +41,13 @@ async function processPerplexityIncomingMessage(payload, options = {}) {
       return hasContent || hasAttachments;
     }
   });
+
+  // If auto-send was blocked because AI is still typing, report as "pasted" with reason
+  if (sendResult.status === "busy") {
+    return { status: "pasted", reason: "stop_visible", attachments: attachmentResult };
+  }
+
+  return { ...sendResult, attachments: attachmentResult };
 }
 
 /**

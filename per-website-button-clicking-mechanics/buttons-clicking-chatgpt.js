@@ -40,6 +40,11 @@ async function processChatGPTIncomingMessage(customMessage, options = {}) {
     interval
   });
 
+  // If auto-send was blocked because AI is still typing, report as "pasted" with reason
+  if (sendResult.status === "busy") {
+    return { status: "pasted", reason: "stop_visible", attachments: attachmentResult };
+  }
+
   return { ...sendResult, attachments: attachmentResult };
 }
 

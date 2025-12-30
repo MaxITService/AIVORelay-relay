@@ -34,11 +34,18 @@ async function processAIStudioIncomingMessage(payload, options = {}) {
 
     await new Promise(r => setTimeout(r, 100));
 
-    return window.ButtonsClickingShared.performAutoSend({
+    const sendResult = await window.ButtonsClickingShared.performAutoSend({
         interval,
         maxAttempts,
         clickAction: (btn) => window.MaxExtensionUtils.simulateClick(btn)
     });
+
+    // If auto-send was blocked because AI is still typing, report as "pasted" with reason
+    if (sendResult.status === "busy") {
+        return { status: "pasted", reason: "stop_visible", attachments: attachmentResult };
+    }
+
+    return { ...sendResult, attachments: attachmentResult };
 }
 
 /**

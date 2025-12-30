@@ -6,7 +6,8 @@
 - Bundle messages can include attachments; the worker downloads `/blob/<attId>` and only forwards when all attachments succeed.
 - Attachment downloads are retried with a pending bundle queue, and recent message IDs are deduped across restarts.
 - Content script receives NEW_MESSAGE, inserts text, uploads attachments on ChatGPT, auto-sends when enabled.
-- Messages are dropped when a stop button is visible or a prior message is still in flight.
+- **Paste-first approach**: Text is always inserted into the editor first. Stop button detection only happens during auto-send. If AI is "still typing" (stop button visible), the message is pasted but auto-send is skipped, with a toast explaining: "Text inserted. Auto-send skipped (AI still typing)."
+- Messages are dropped only when a prior message is still in flight.
 - Supported sites: ChatGPT, Gemini, Perplexity, Claude, Grok, and AI Studio (all with attachment support).
 - Perplexity insertion uses a main-world injector script for text and a "Paste Event" simulation for attachments.
 - Auto-send toggle lives in the popup (default on, stored in chrome.storage.local).

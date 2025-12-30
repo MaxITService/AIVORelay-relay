@@ -74,12 +74,6 @@ async function handleIncomingMessage(message) {
       return;
     }
 
-    if (window.ButtonsClickingShared?.findStopButton?.()) {
-      notifyBusyDrop();
-      reportStatus("dropped_busy", { site, detail: "stop_visible", messageId: payload.id });
-      return;
-    }
-
     const autoSend = await getAutoSendSetting();
     const result = await dispatchToSite(site, payload, autoSend);
     handleResult(result, {
@@ -241,7 +235,10 @@ function handleResult(result, context) {
   }
 
   if (status === "pasted") {
-    reportStatus("pasted", { site, messageId, messagePreview: context.messagePreview });
+    if (reason === "stop_visible") {
+      notifyPastedButBusy();
+    }
+    reportStatus("pasted", { site, messageId, messagePreview: context.messagePreview, detail: reason || undefined });
     return;
   }
 
@@ -291,6 +288,12 @@ function reportStatus(status, payload = {}) {
 function notifyBusyDrop() {
   if (typeof showToast === "function") {
     showToast("AI is still typing. Message dropped.", "info");
+  }
+}
+
+function notifyPastedButBusy() {
+  if (typeof showToast === "function") {
+    showToast("Text inserted. Auto-send skipped (AI still typing).", "info");
   }
 }
 
