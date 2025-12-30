@@ -975,8 +975,8 @@ async function refreshFloatingState() {
     settings: UI_DEFAULT_SETTINGS,
     status: null,
     messages: [],
-    boundTabId: null,
-    boundTabInfo: null
+    boundTabIds: [],
+    boundTabInfos: {}
   });
 
   floatingState = {
