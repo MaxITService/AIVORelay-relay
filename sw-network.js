@@ -50,7 +50,7 @@ async function buildAuthHeaders(existingHeaders = {}) {
   };
 }
 
-function buildRequestUrl(settings, cursor) {
+function buildRequestUrl(settings, cursor, waitSeconds = 0) {
   const host = (settings.host || DEFAULT_SETTINGS.host).trim();
   const port = Number(settings.port) || DEFAULT_SETTINGS.port;
   const base = `http://${host}:${port}`;
@@ -59,6 +59,11 @@ function buildRequestUrl(settings, cursor) {
 
   if (cursor !== null && cursor !== undefined && cursor !== "") {
     url.searchParams.set("since", String(cursor));
+  }
+
+  // Add wait parameter for long-polling (0 = immediate response for backward compat)
+  if (waitSeconds > 0) {
+    url.searchParams.set("wait", String(waitSeconds));
   }
 
   return url;

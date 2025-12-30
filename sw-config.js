@@ -4,8 +4,8 @@ const DEFAULT_SETTINGS = {
   host: "127.0.0.1",
   port: 63155,
   path: "/messages",
-  pollMinutes: 0.1,
-  timeoutMs: 3000,
+  pollMinutes: 1, // Reduced frequency - long-poll handles real-time delivery
+  timeoutMs: 3000, // Legacy timeout for non-long-poll requests
   autoSend: true,
   maxStoredMessages: 5,
   singleTabBindingMode: true
@@ -20,6 +20,13 @@ const STATUS_DEFAULT = {
   connected: false,
   lastKeepaliveAt: null
 };
+
+// Long-polling configuration
+const LONG_POLL_WAIT_SECONDS = 25;     // Server holds connection this long
+const LONG_POLL_TIMEOUT_MS = 30000;    // Client timeout (server wait + buffer)
+const RECONNECT_DELAY_MS = 500;        // Gap between long-poll cycles
+const ERROR_BACKOFF_BASE_MS = 1000;    // Exponential backoff base
+const ERROR_BACKOFF_MAX_MS = 30000;    // Max backoff on errors
 
 const MAX_MESSAGES = 5;
 const MAX_DEDUPED_IDS = 400;

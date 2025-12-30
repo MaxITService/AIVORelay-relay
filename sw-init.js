@@ -2,18 +2,24 @@
 
 chrome.runtime.onInstalled.addListener(async () => {
   await ensureDefaults();
-  await setupAlarm();
-  void pollOnce();
+  await setupAlarm(); // Keep alarm as fallback/heartbeat
+  longPollLoop(); // Start long-poll loop (don't await - runs in background)
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   await ensureDefaults();
-  await setupAlarm();
-  void pollOnce();
+  await setupAlarm(); // Keep alarm as fallback/heartbeat
+  longPollLoop(); // Start long-poll loop
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== "poll-messages") return;
+  // Fallback: restart long-poll loop if it died
+  if (!longPollActive) {
+    console.log("[aivo-relay] Alarm triggered, restarting long-poll loop");
+    longPollLoop();
+  }
+  // Also do a quick immediate poll as heartbeat
   void pollOnce();
 });
 
@@ -21,7 +27,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "local") return;
   if (changes.settings) {
     void setupAlarm();
-    void pollOnce();
+    // Restart long-poll loop with new settings
+    restartLongPollLoop();
   }
 });
 

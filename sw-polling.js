@@ -1,7 +1,230 @@
 'use strict';
 
 let pollInFlight = false;
+let longPollActive = false;
+let consecutiveErrors = 0;
 
+/**
+ * Sleep helper for delays between polls
+ * @param {number} ms - milliseconds to sleep
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Long-polling loop - maintains persistent connection with server
+ * Replaces interval-based polling with immediate message delivery
+ */
+async function longPollLoop() {
+  if (longPollActive) {
+    console.log("[aivo-relay] Long-poll loop already active, skipping");
+    return;
+  }
+  longPollActive = true;
+  console.log("[aivo-relay] Starting long-poll loop");
+
+  while (longPollActive) {
+    try {
+      await pollOnceWithWait(LONG_POLL_WAIT_SECONDS);
+      consecutiveErrors = 0;
+
+      // Small delay to prevent CPU spin between polls
+      await sleep(RECONNECT_DELAY_MS);
+
+    } catch (err) {
+      consecutiveErrors++;
+      const backoff = Math.min(
+        ERROR_BACKOFF_BASE_MS * Math.pow(2, consecutiveErrors - 1),
+        ERROR_BACKOFF_MAX_MS
+      );
+      console.warn(`[aivo-relay] Long-poll error (attempt ${consecutiveErrors}), retry in ${backoff}ms:`, err?.message || err);
+      
+      // Show badge if persistent errors
+      if (consecutiveErrors >= 3) {
+        chrome.action.setBadgeText({ text: "!" });
+        chrome.action.setBadgeBackgroundColor({ color: "#f59e0b" }); // Amber for connectivity issues
+      }
+
+      await sleep(backoff);
+    }
+  }
+
+  console.log("[aivo-relay] Long-poll loop stopped");
+}
+
+/**
+ * Stop the long-poll loop (e.g., for settings changes)
+ */
+function stopLongPollLoop() {
+  longPollActive = false;
+}
+
+/**
+ * Restart the long-poll loop
+ */
+async function restartLongPollLoop() {
+  stopLongPollLoop();
+  await sleep(100); // Give time for loop to exit
+  longPollLoop(); // Don't await - runs in background
+}
+
+/**
+ * Poll with long-poll wait parameter
+ * @param {number} waitSeconds - How long server should hold connection
+ */
+async function pollOnceWithWait(waitSeconds = 0) {
+  if (pollInFlight) return;
+  pollInFlight = true;
+
+  // Use longer timeout for long-poll requests
+  const timeoutMs = waitSeconds > 0 ? LONG_POLL_TIMEOUT_MS : DEFAULT_SETTINGS.timeoutMs;
+  
+  try {
+    const settings = await getSettings();
+
+    const stored = await chrome.storage.local.get({
+      cursor: null,
+      messages: [],
+      status: STATUS_DEFAULT,
+      pendingBundles: {},
+      recentMessageIds: [],
+      boundTabIds: []
+    });
+    const boundTabIds = Array.isArray(stored.boundTabIds) ? stored.boundTabIds : [];
+
+    let messageList = Array.isArray(stored.messages) ? [...stored.messages] : [];
+    let pendingBundles = normalizePendingBundles(stored.pendingBundles);
+    let dedupeSet = new Set(Array.isArray(stored.recentMessageIds) ? stored.recentMessageIds : []);
+
+    // Build URL with wait parameter for long-polling
+    const response = await fetchWithTimeout(
+      buildRequestUrl(settings, stored.cursor, waitSeconds),
+      timeoutMs
+    );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        chrome.action.setBadgeText({ text: "!" });
+        chrome.action.setBadgeBackgroundColor({ color: "#b42318" });
+        throw new Error("Authentication failed. Check that your password matches the AivoRelay app.");
+      }
+      const bodyText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
+    }
+
+    // Clear badge on successful connection
+    chrome.action.setBadgeText({ text: "" });
+
+    const bodyText = await response.text();
+    const parsed = parseMaybeJson(bodyText);
+    const parsedResponse = parseMessageResponse(parsed, bodyText);
+    const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);
+
+    const keepalives = incomingMessages.filter(isKeepaliveMessage);
+    const regularMessages = incomingMessages.filter(
+      (msg) => !isKeepaliveMessage(msg) && !isStatusMessage(msg)
+    );
+
+    // Handle password update from server (two-phase commit)
+    if (parsedResponse.passwordUpdate) {
+      console.log("[aivo-relay] Server sent password update, saving...");
+      const saved = await saveConnectorPassword(parsedResponse.passwordUpdate);
+      if (saved) {
+        console.log("[aivo-relay] Password saved successfully, sending acknowledgement...");
+        const ackSent = await sendPasswordAck(settings, parsedResponse.passwordUpdate, timeoutMs);
+        if (ackSent) {
+          console.log("[aivo-relay] Password update complete (two-phase commit successful)");
+        } else {
+          console.warn("[aivo-relay] Password ack failed - server may still accept old password on next poll");
+        }
+      } else {
+        console.error("[aivo-relay] CRITICAL: Failed to save new password. Extension may lose access on next request.");
+      }
+    }
+
+    if (keepalives.length > 0) {
+      void sendAck(settings);
+    }
+
+    const serverConfig = parsedResponse.config || null;
+    const wasBound = boundTabIds.length > 0;
+
+    for (const msg of regularMessages) {
+      if (isDuplicateMessage(msg, dedupeSet, pendingBundles)) continue;
+
+      if (msg.type === "bundle" && msg.attachments.length) {
+        pendingBundles[msg.id] = ensurePendingBundle(msg, pendingBundles[msg.id]);
+        messageList = upsertMessageList(messageList, buildStoredMessage(msg, {
+          status: "pending",
+          errors: [],
+          wasBound
+        }));
+        continue;
+      }
+
+      const storedMessage = buildStoredMessage(msg, { status: "ok", errors: [], wasBound });
+      const delivery = await deliverToBoundTabs(boundTabIds, buildForwardPayload(msg, [], "ok"), serverConfig);
+      messageList = applyDeliveryStatus(messageList, msg.id, delivery);
+      messageList = upsertMessageList(messageList, storedMessage);
+      dedupeSet.add(msg.id);
+    }
+
+    const bundleOutcome = await processPendingBundles(
+      pendingBundles,
+      settings,
+      boundTabIds,
+      messageList,
+      dedupeSet,
+      serverConfig
+    );
+    pendingBundles = bundleOutcome.pendingBundles;
+    messageList = bundleOutcome.messageList;
+    dedupeSet = bundleOutcome.dedupeSet;
+
+    const nextCursor = resolveCursor(parsedResponse.cursor, parsed, incomingMessages, stored.cursor);
+    const { status: prevStatus } = stored;
+
+    await chrome.storage.local.set({
+      cursor: nextCursor,
+      messages: await trimMessageList(messageList),
+      pendingBundles: trimPendingBundles(pendingBundles),
+      recentMessageIds: trimDedupeList(dedupeSet),
+      status: {
+        ...prevStatus,
+        lastPollAt: Date.now(),
+        lastSuccessAt: Date.now(),
+        lastError: null,
+        connected: true,
+        lastKeepaliveAt: keepalives.length ? Date.now() : prevStatus.lastKeepaliveAt
+      }
+    });
+  } catch (err) {
+    const errorMessage =
+      err?.name === "AbortError"
+        ? `Request timed out after ${timeoutMs}ms`
+        : err?.message || String(err);
+    const { status: previousStatus } = await chrome.storage.local.get({
+      status: STATUS_DEFAULT
+    });
+    await chrome.storage.local.set({
+      status: {
+        lastPollAt: Date.now(),
+        lastSuccessAt: previousStatus?.lastSuccessAt ?? null,
+        lastError: errorMessage,
+        connected: false
+      }
+    });
+    throw err; // Re-throw for long-poll loop error handling
+  } finally {
+    pollInFlight = false;
+  }
+}
+
+/**
+ * Legacy poll function - immediate response, no wait
+ * Kept for backward compatibility and fallback scenarios
+ */
 async function pollOnce() {
   if (pollInFlight) return;
   pollInFlight = true;
