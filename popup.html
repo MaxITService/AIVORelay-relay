@@ -9,18 +9,24 @@
         color-scheme: light;
         --bg: #f2ebe1;
         --bg-accent: #f8e2bd;
-        --surface: rgba(255, 255, 255, 0.9);
-        --border: #d6c9b6;
+        --surface: rgba(255, 255, 255, 0.85);
+        --surface-glass: rgba(255, 255, 255, 0.65);
+        --border: rgba(214, 201, 182, 0.6);
+        --border-glass: rgba(255, 255, 255, 0.4);
         --text: #211d17;
         --muted: #6a5f51;
         --accent: #187c6b;
-        --accent-soft: #d7efe8;
+        --accent-glow: rgba(24, 124, 107, 0.4);
+        --accent-soft: rgba(24, 124, 107, 0.15);
         --error: #b42318;
+        --error-soft: rgba(180, 35, 24, 0.1);
         --warning: #b45309;
         --warning-soft: #fef3c7;
         --success: #059669;
-        --success-soft: #d1fae5;
-        --shadow: 0 12px 26px rgba(55, 42, 24, 0.1);
+        --success-soft: rgba(5, 150, 105, 0.12);
+        --success-glow: rgba(5, 150, 105, 0.35);
+        --shadow: 0 12px 32px rgba(55, 42, 24, 0.12);
+        --shadow-glow: 0 8px 32px rgba(24, 124, 107, 0.15);
       }
 
       * {
@@ -41,10 +47,16 @@
         font-family: "Trebuchet MS", "Gill Sans", "Calibri", sans-serif;
         color: var(--text);
         background: radial-gradient(
-            circle at top,
-            var(--bg-accent),
-            transparent 58%
+            ellipse at 30% 0%,
+            rgba(24, 124, 107, 0.08),
+            transparent 50%
           ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(248, 226, 189, 0.6),
+            transparent 40%
+          ),
+          radial-gradient(circle at top, var(--bg-accent), transparent 58%),
           linear-gradient(160deg, #f7f1e6, var(--bg));
         display: flex;
         flex-direction: column;
@@ -63,6 +75,10 @@
         margin: 0;
         font-size: 15px;
         letter-spacing: 0.3px;
+        background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .badge {
@@ -72,19 +88,52 @@
         min-width: 28px;
         padding: 4px 8px;
         border-radius: 999px;
-        background: var(--accent-soft);
+        background: linear-gradient(
+          135deg,
+          var(--accent-soft),
+          rgba(24, 124, 107, 0.25)
+        );
         color: var(--accent);
         font-weight: 700;
         font-size: 12px;
+        border: 1px solid rgba(24, 124, 107, 0.2);
+        box-shadow: 0 2px 8px rgba(24, 124, 107, 0.15);
+        cursor: default;
+        transition: transform 150ms ease, box-shadow 150ms ease;
+      }
+
+      .badge:hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(24, 124, 107, 0.25);
       }
 
       .card {
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 14px;
-        padding: 12px;
+        border-radius: 16px;
+        padding: 14px;
         box-shadow: var(--shadow);
+        backdrop-filter: blur(12px) saturate(150%);
+        -webkit-backdrop-filter: blur(12px) saturate(150%);
         flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.8),
+          transparent
+        );
+        pointer-events: none;
       }
 
       .card + .card {
@@ -349,51 +398,115 @@
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: #ccc;
-        transition: background 300ms ease, box-shadow 300ms ease;
+        background: linear-gradient(135deg, #999, #bbb);
+        transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+      }
+
+      .keepalive-indicator::after {
+        content: "";
+        position: absolute;
+        inset: -3px;
+        border-radius: 50%;
+        background: transparent;
+        transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .keepalive-indicator.active {
-        background: #2ecc71;
-        box-shadow: 0 0 8px rgba(46, 204, 113, 0.6);
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        box-shadow: 0 0 12px rgba(46, 204, 113, 0.7),
+          0 0 4px rgba(46, 204, 113, 0.9);
+        animation: pulse-glow 2s infinite;
+      }
+
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          box-shadow: 0 0 12px rgba(46, 204, 113, 0.7),
+            0 0 4px rgba(46, 204, 113, 0.9);
+        }
+        50% {
+          box-shadow: 0 0 18px rgba(46, 204, 113, 0.9),
+            0 0 6px rgba(46, 204, 113, 1);
+        }
       }
 
       /* Connection status banner */
       .status-banner {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        margin-bottom: 10px;
+        gap: 10px;
+        padding: 12px 14px;
+        border-radius: 14px;
+        margin-bottom: 12px;
         font-size: 12px;
         font-weight: 600;
-        transition: all 200ms ease;
+        transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
         flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+      }
+
+      .status-banner::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.5),
+          transparent
+        );
+        pointer-events: none;
       }
 
       .status-banner.disconnected {
-        background: rgba(180, 35, 24, 0.1);
-        border: 1px solid rgba(180, 35, 24, 0.3);
+        background: linear-gradient(
+          135deg,
+          rgba(180, 35, 24, 0.12),
+          rgba(180, 35, 24, 0.08)
+        );
+        border: 1px solid rgba(180, 35, 24, 0.25);
         color: var(--error);
+        box-shadow: 0 4px 20px rgba(180, 35, 24, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
       }
 
       .status-banner.connected-unbound {
-        background: var(--warning-soft);
-        border: 1px solid rgba(180, 83, 9, 0.3);
+        background: linear-gradient(
+          135deg,
+          rgba(180, 83, 9, 0.12),
+          rgba(254, 243, 199, 0.6)
+        );
+        border: 1px solid rgba(180, 83, 9, 0.25);
         color: var(--warning);
+        box-shadow: 0 4px 20px rgba(180, 83, 9, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
 
       .status-banner.ready {
-        background: var(--success-soft);
-        border: 1px solid rgba(5, 150, 105, 0.3);
+        background: linear-gradient(
+          135deg,
+          rgba(5, 150, 105, 0.15),
+          rgba(209, 250, 229, 0.5)
+        );
+        border: 1px solid rgba(5, 150, 105, 0.25);
         color: var(--success);
+        box-shadow: 0 4px 20px var(--success-glow),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
       }
 
       .status-banner-icon {
-        width: 18px;
-        height: 18px;
+        width: 20px;
+        height: 20px;
         flex-shrink: 0;
+        filter: drop-shadow(0 1px 2px currentColor);
+        opacity: 0.9;
       }
 
       .status-banner-text {
@@ -403,8 +516,8 @@
       .status-banner-hint {
         font-size: 11px;
         font-weight: 400;
-        opacity: 0.85;
-        margin-top: 2px;
+        opacity: 0.8;
+        margin-top: 3px;
       }
 
       /* Help text styles */
@@ -584,7 +697,9 @@
           title="Keepalive Status"
         ></div>
       </div>
-      <span class="badge" id="message-count">0</span>
+      <span class="badge" id="message-count" title="Recent messages count"
+        >0</span
+      >
     </header>
 
     <!-- Status Banner -->

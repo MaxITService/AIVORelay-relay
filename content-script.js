@@ -358,7 +358,6 @@ function initFloatingUi() {
     void toggleBinding();
   });
 
-  floatingEls.portInput.addEventListener("input", handlePortInputChange);
   floatingEls.autoSendInput.addEventListener("change", handleAutoSendChange);
   if (floatingEls.singleTabModeInput) {
     floatingEls.singleTabModeInput.addEventListener("change", handleSingleTabModeChange);
@@ -385,13 +384,20 @@ function injectFloatingStyles() {
   style.id = FLOATING_STYLE_ID;
   style.textContent = `
 #${FLOATING_UI_ID} {
-  --hc-bg: rgba(248, 243, 235, 0.88);
-  --hc-border: rgba(214, 201, 182, 0.7);
+  --hc-bg: rgba(248, 243, 235, 0.92);
+  --hc-bg-glass: rgba(255, 255, 255, 0.75);
+  --hc-border: rgba(214, 201, 182, 0.5);
+  --hc-border-glass: rgba(255, 255, 255, 0.6);
   --hc-text: #211d17;
   --hc-muted: #6a5f51;
   --hc-accent: #187c6b;
-  --hc-accent-soft: rgba(24, 124, 107, 0.18);
-  --hc-shadow: 0 14px 30px rgba(33, 29, 23, 0.18);
+  --hc-accent-soft: rgba(24, 124, 107, 0.15);
+  --hc-accent-glow: rgba(24, 124, 107, 0.4);
+  --hc-success: #059669;
+  --hc-success-glow: rgba(5, 150, 105, 0.5);
+  --hc-error: #b42318;
+  --hc-shadow: 0 16px 40px rgba(33, 29, 23, 0.15), 0 4px 12px rgba(33, 29, 23, 0.08);
+  --hc-shadow-glow: 0 8px 32px rgba(24, 124, 107, 0.12);
   position: fixed;
   right: 12px;
   bottom: 12px;
@@ -417,17 +423,31 @@ function injectFloatingStyles() {
   font-family: inherit;
 }
 
+/* Minimized bar - liquid glass pill */
 #${FLOATING_UI_ID} .hc-min {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
+  gap: 8px;
+  padding: 7px 10px;
   border-radius: 999px;
-  background: var(--hc-bg);
-  border: 1px solid var(--hc-border);
-  box-shadow: var(--hc-shadow);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  background: linear-gradient(135deg, var(--hc-bg-glass) 0%, var(--hc-bg) 100%);
+  border: 1px solid var(--hc-border-glass);
+  box-shadow: var(--hc-shadow), inset 0 1px 0 rgba(255,255,255,0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  position: relative;
+  overflow: hidden;
+}
+
+#${FLOATING_UI_ID} .hc-min::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  pointer-events: none;
 }
 
 #${FLOATING_UI_ID} .hc-drag-handle {
@@ -439,21 +459,60 @@ function injectFloatingStyles() {
   cursor: grabbing;
 }
 
+/* Main toggle button - stylized A */
 #${FLOATING_UI_ID} .hc-toggle {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.3px;
-  color: var(--hc-text);
+  background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0;
+  color: var(--hc-accent);
+  box-shadow: 0 2px 8px rgba(24, 124, 107, 0.15), inset 0 1px 0 rgba(255,255,255,0.8);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-style: italic;
 }
 
+#${FLOATING_UI_ID} .hc-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px var(--hc-accent-glow), inset 0 1px 0 rgba(255,255,255,0.9);
+  background: linear-gradient(145deg, rgba(255,255,255,1), rgba(255,255,255,0.85));
+}
+
+/* Status dots container */
+#${FLOATING_UI_ID} .hc-status-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+/* Server connection dot */
+#${FLOATING_UI_ID} .hc-server-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #999, #bbb);
+  transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: help;
+}
+
+#${FLOATING_UI_ID}[data-connected="true"] .hc-server-dot {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  box-shadow: 0 0 8px rgba(46, 204, 113, 0.6), 0 0 3px rgba(46, 204, 113, 0.8);
+}
+
+#${FLOATING_UI_ID}[data-connected="false"] .hc-server-dot {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.4);
+}
+
+/* Binding toggle with dot */
 #${FLOATING_UI_ID} .hc-bind-toggle {
   width: 28px;
   height: 28px;
@@ -461,51 +520,75 @@ function injectFloatingStyles() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.6);
+  background: linear-gradient(145deg, rgba(255,255,255,0.8), rgba(255,255,255,0.5));
   border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+#${FLOATING_UI_ID} .hc-bind-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Binding dot (separate visual from server dot) */
 #${FLOATING_UI_ID} .hc-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #9aa0a6;
-  transition: background 200ms ease, box-shadow 200ms ease;
+  background: linear-gradient(135deg, #9aa0a6, #bdc3c7);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid rgba(255,255,255,0.6);
 }
 
 #${FLOATING_UI_ID}[data-bound="true"] .hc-dot {
-  background: #2ecc71;
-  box-shadow: 0 0 10px rgba(46, 204, 113, 0.7);
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.6), 0 0 4px rgba(52, 152, 219, 0.8);
+  border-color: rgba(255,255,255,0.8);
 }
 
+/* Panel - liquid glass card */
 #${FLOATING_UI_ID} .hc-panel {
-  width: 340px;
-  max-height: 70vh;
+  width: 300px;
+  max-height: 60vh;
   overflow: hidden;
-  background: var(--hc-bg);
-  border: 1px solid var(--hc-border);
-  border-radius: 16px;
-  box-shadow: var(--hc-shadow);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  padding: 12px;
+  background: linear-gradient(165deg, var(--hc-bg-glass) 0%, var(--hc-bg) 100%);
+  border: 1px solid var(--hc-border-glass);
+  border-radius: 20px;
+  box-shadow: var(--hc-shadow), inset 0 1px 0 rgba(255,255,255,0.4);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  padding: 14px;
   position: absolute;
   right: 0;
-  bottom: calc(100% + 10px);
+  bottom: calc(100% + 12px);
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 160ms ease, transform 160ms ease, max-height 160ms ease;
+  transform: translateY(0) scale(1);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#${FLOATING_UI_ID} .hc-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+  pointer-events: none;
 }
 
 #${FLOATING_UI_ID}[data-collapsed="true"] .hc-panel {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(10px) scale(0.95);
   pointer-events: none;
   max-height: 0;
   padding: 0;
   border-color: transparent;
+  box-shadow: none;
 }
 
+/* Panel header */
 #${FLOATING_UI_ID} .hc-panel-header {
   display: flex;
   justify-content: space-between;
@@ -515,8 +598,12 @@ function injectFloatingStyles() {
 
 #${FLOATING_UI_ID} .hc-title-text {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.2px;
+  background: linear-gradient(135deg, var(--hc-text) 0%, var(--hc-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 #${FLOATING_UI_ID} .hc-bind-text {
@@ -526,131 +613,122 @@ function injectFloatingStyles() {
 }
 
 #${FLOATING_UI_ID} .hc-collapse {
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 11px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  color: var(--hc-text);
-}
-
-#${FLOATING_UI_ID} .hc-section {
-  margin-top: 10px;
-}
-
-#${FLOATING_UI_ID} .hc-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 11px;
-  color: var(--hc-muted);
-  margin-top: 6px;
-}
-
-#${FLOATING_UI_ID} .hc-value {
-  color: var(--hc-text);
-  font-weight: 600;
-  text-align: right;
-  max-width: 65%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-#${FLOATING_UI_ID} .hc-status.is-error {
-  color: #b42318;
-}
-
-#${FLOATING_UI_ID} .hc-input-label {
-  font-size: 11px;
-  color: var(--hc-muted);
-}
-
-#${FLOATING_UI_ID} .hc-input {
-  width: 100%;
-  margin-top: 4px;
-  padding: 7px 9px;
+  padding: 5px 10px;
   border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
   border: 1px solid rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.9);
-  font-size: 12px;
+  color: var(--hc-muted);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: all 150ms ease;
+}
+
+#${FLOATING_UI_ID} .hc-collapse:hover {
   color: var(--hc-text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-#${FLOATING_UI_ID} .hc-input.invalid {
-  border-color: #b42318;
-  box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.2);
+/* Section styling */
+#${FLOATING_UI_ID} .hc-section {
+  margin-top: 12px;
 }
 
+/* Checkbox controls */
 #${FLOATING_UI_ID} .hc-checkbox {
   margin-top: 8px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 11px;
   color: var(--hc-muted);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+#${FLOATING_UI_ID} .hc-checkbox:hover {
+  color: var(--hc-text);
 }
 
 #${FLOATING_UI_ID} .hc-checkbox input {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
   accent-color: var(--hc-accent);
+  cursor: pointer;
 }
 
+/* Messages header */
 #${FLOATING_UI_ID} .hc-messages-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 11px;
+  font-weight: 600;
   color: var(--hc-muted);
 }
 
 #${FLOATING_UI_ID} .hc-actions {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 #${FLOATING_UI_ID} .hc-count {
   min-width: 24px;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border-radius: 999px;
-  background: var(--hc-accent-soft);
+  background: linear-gradient(135deg, var(--hc-accent-soft), rgba(24, 124, 107, 0.22));
   color: var(--hc-accent);
   font-weight: 700;
   font-size: 11px;
   text-align: center;
+  border: 1px solid rgba(24, 124, 107, 0.15);
+  cursor: help;
 }
 
 #${FLOATING_UI_ID} .hc-clear-btn {
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
-  color: #b42318;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(180, 35, 24, 0.35);
+  color: var(--hc-error);
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  border: 1px solid rgba(180, 35, 24, 0.25);
+  transition: all 150ms ease;
+}
+
+#${FLOATING_UI_ID} .hc-clear-btn:hover:not(:disabled) {
+  background: rgba(180, 35, 24, 0.08);
+  border-color: rgba(180, 35, 24, 0.4);
 }
 
 #${FLOATING_UI_ID} .hc-clear-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
+/* Messages list */
 #${FLOATING_UI_ID} .hc-messages-list {
-  margin-top: 8px;
-  max-height: 220px;
+  margin-top: 10px;
+  max-height: 200px;
   overflow: auto;
   display: grid;
-  gap: 6px;
-  padding-right: 2px;
+  gap: 8px;
+  padding-right: 4px;
 }
 
+/* Individual message cards */
 #${FLOATING_UI_ID} .hc-message {
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  background: rgba(255, 255, 255, 0.8);
-  padding: 6px 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.65));
+  padding: 8px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 150ms ease;
+}
+
+#${FLOATING_UI_ID} .hc-message:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 #${FLOATING_UI_ID} .hc-message-time {
@@ -664,6 +742,7 @@ function injectFloatingStyles() {
   color: var(--hc-text);
   white-space: pre-wrap;
   word-break: break-word;
+  line-height: 1.4;
 }
 
 #${FLOATING_UI_ID} .hc-message-status {
@@ -672,29 +751,31 @@ function injectFloatingStyles() {
   margin-bottom: 4px;
 }
 
+/* Attachments */
 #${FLOATING_UI_ID} .hc-attachments {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 #${FLOATING_UI_ID} .hc-attachment {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 6px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.75));
   border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
 #${FLOATING_UI_ID} .hc-attachment-thumb {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   object-fit: cover;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 #${FLOATING_UI_ID} .hc-attachment-icon {
@@ -709,7 +790,7 @@ function injectFloatingStyles() {
 #${FLOATING_UI_ID} .hc-attachment-label {
   font-size: 10px;
   color: var(--hc-muted);
-  max-width: 160px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -721,31 +802,36 @@ function injectFloatingStyles() {
   align-self: center;
 }
 
+/* Message actions */
 #${FLOATING_UI_ID} .hc-message-actions {
-  margin-top: 6px;
+  margin-top: 8px;
   display: flex;
   justify-content: flex-end;
 }
 
 #${FLOATING_UI_ID} .hc-retry-btn {
-  padding: 2px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
-  color: #b42318;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(180, 35, 24, 0.35);
+  color: var(--hc-error);
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  border: 1px solid rgba(180, 35, 24, 0.3);
+  transition: all 150ms ease;
 }
 
 #${FLOATING_UI_ID} .hc-retry-btn:hover {
-  opacity: 0.9;
+  background: rgba(180, 35, 24, 0.08);
+  border-color: rgba(180, 35, 24, 0.5);
 }
 
+/* Empty state */
 #${FLOATING_UI_ID} .hc-empty {
   font-size: 11px;
   color: var(--hc-muted);
   text-align: center;
-  padding: 8px 0;
+  padding: 16px 8px;
+  opacity: 0.8;
 }
 `;
   const target = document.head || document.documentElement;
@@ -757,12 +843,16 @@ function buildFloatingUi() {
   root.id = FLOATING_UI_ID;
   root.dataset.collapsed = "true";
   root.dataset.bound = "false";
+  root.dataset.connected = "false";
 
   root.innerHTML = `
     <div class="hc-min hc-drag-handle">
-      <button class="hc-toggle" type="button" aria-expanded="false" title="Open panel">HC</button>
+      <button class="hc-toggle" type="button" aria-expanded="false" title="Open panel">A</button>
+      <div class="hc-status-dots">
+        <span class="hc-server-dot" title="Server: Checking..."></span>
+      </div>
       <button class="hc-bind-toggle" type="button" aria-pressed="false" title="Toggle bind for this tab">
-        <span class="hc-dot"></span>
+        <span class="hc-dot" title="Page binding status"></span>
       </button>
     </div>
     <div class="hc-panel" role="dialog" aria-label="AivoRelay panel">
@@ -774,21 +864,9 @@ function buildFloatingUi() {
         <button class="hc-collapse" type="button" title="Collapse">Close</button>
       </div>
       <div class="hc-section">
-        <div class="hc-row">
-          <span class="hc-label">Server</span>
-          <span class="hc-value" id="hc-server-url"></span>
-        </div>
-        <div class="hc-row">
-          <span class="hc-label">Status</span>
-          <span class="hc-value hc-status" id="hc-status"></span>
-        </div>
-      </div>
-      <div class="hc-section">
-        <label class="hc-input-label" for="hc-port">Port</label>
-        <input id="hc-port" class="hc-input" type="number" min="1" max="65535" step="1" inputmode="numeric" />
         <label class="hc-checkbox">
           <input id="hc-auto-send" type="checkbox" />
-          Auto-send
+          Auto-send messages
         </label>
         <label class="hc-checkbox">
           <input id="hc-single-tab-mode" type="checkbox" />
@@ -799,7 +877,7 @@ function buildFloatingUi() {
         <div class="hc-messages-header">
           <span>Messages</span>
           <div class="hc-actions">
-            <span class="hc-count" id="hc-message-count">0</span>
+            <span class="hc-count" id="hc-message-count" title="Recent messages count">0</span>
             <button class="hc-clear-btn" id="hc-clear-messages" type="button">Clear</button>
           </div>
         </div>
@@ -813,12 +891,10 @@ function buildFloatingUi() {
     minBar: root.querySelector(".hc-min"),
     panelHeader: root.querySelector(".hc-panel-header"),
     toggleBtn: root.querySelector(".hc-toggle"),
+    serverDot: root.querySelector(".hc-server-dot"),
     bindToggleBtn: root.querySelector(".hc-bind-toggle"),
     collapseBtn: root.querySelector(".hc-collapse"),
     bindTextEl: root.querySelector("#hc-bind-text"),
-    serverUrlEl: root.querySelector("#hc-server-url"),
-    statusEl: root.querySelector("#hc-status"),
-    portInput: root.querySelector("#hc-port"),
     autoSendInput: root.querySelector("#hc-auto-send"),
     singleTabModeInput: root.querySelector("#hc-single-tab-mode"),
     messageCountEl: root.querySelector("#hc-message-count"),
@@ -1039,48 +1115,40 @@ function renderFloatingUi() {
 
 function renderFloatingSettings() {
   const settings = floatingState.settings || UI_DEFAULT_SETTINGS;
-  if (document.activeElement !== floatingEls.portInput) {
-    floatingEls.portInput.value = settings.port ?? UI_DEFAULT_SETTINGS.port;
-  }
   floatingEls.autoSendInput.checked = settings.autoSend !== false;
   if (floatingEls.singleTabModeInput) {
     floatingEls.singleTabModeInput.checked = settings.singleTabBindingMode !== false;
   }
-  floatingEls.serverUrlEl.textContent = `http://${settings.host}:${settings.port}`;
 }
 
 function renderFloatingStatus() {
   const status = floatingState.status;
+  const serverDot = floatingEls.serverDot;
+
   if (!status) {
-    floatingEls.statusEl.textContent = "Waiting for first check...";
-    floatingEls.statusEl.classList.remove("is-error");
+    floatingEls.root.dataset.connected = "false";
+    if (serverDot) serverDot.title = "Server: Checking connection...";
     return;
   }
 
   if (status.lastError) {
+    floatingEls.root.dataset.connected = "false";
     const lastSuccess = status.lastSuccessAt
-      ? ` Last success: ${formatTime(status.lastSuccessAt)}.`
+      ? ` (Last OK: ${formatTime(status.lastSuccessAt)})`
       : "";
-    floatingEls.statusEl.textContent = `Connection failed: ${status.lastError}.${lastSuccess}`;
-    floatingEls.statusEl.classList.add("is-error");
+    if (serverDot) serverDot.title = `Server: Disconnected - ${status.lastError}${lastSuccess}`;
     return;
   }
 
   if (status.connected) {
+    floatingEls.root.dataset.connected = "true";
     const lastCheck = status.lastPollAt ? formatTime(status.lastPollAt) : "Just now";
-    floatingEls.statusEl.textContent = `Connected - Last check: ${lastCheck}`;
-    floatingEls.statusEl.classList.remove("is-error");
+    if (serverDot) serverDot.title = `Server: Connected (Last check: ${lastCheck})`;
     return;
   }
 
-  if (status.lastPollAt) {
-    floatingEls.statusEl.textContent = `Last check: ${formatTime(status.lastPollAt)}`;
-    floatingEls.statusEl.classList.remove("is-error");
-    return;
-  }
-
-  floatingEls.statusEl.textContent = "Waiting for first check...";
-  floatingEls.statusEl.classList.remove("is-error");
+  floatingEls.root.dataset.connected = "false";
+  if (serverDot) serverDot.title = "Server: Waiting for connection...";
 }
 
 function renderFloatingMessages() {
@@ -1316,6 +1384,18 @@ function renderFloatingBinding() {
   floatingEls.root.dataset.bound = isBoundToCurrent ? "true" : "false";
   floatingEls.bindToggleBtn.setAttribute("aria-pressed", isBoundToCurrent ? "true" : "false");
 
+  // Update binding dot tooltip
+  const bindDot = floatingEls.bindToggleBtn.querySelector(".hc-dot");
+  if (bindDot) {
+    if (isBoundToCurrent) {
+      bindDot.title = `Page bound${boundTabIds.length > 1 ? ` (${boundTabIds.length} total)` : ""}`;
+    } else if (boundTabIds.length > 0) {
+      bindDot.title = `${boundTabIds.length} other tab(s) bound - Click to bind this page`;
+    } else {
+      bindDot.title = "Click to bind this page";
+    }
+  }
+
   let label = "No tab bound";
   if (boundTabIds.length > 0) {
     if (isBoundToCurrent) {
@@ -1327,17 +1407,6 @@ function renderFloatingBinding() {
 
   floatingEls.bindTextEl.textContent = label;
   floatingEls.bindToggleBtn.title = isBoundToCurrent ? "Unbind this tab" : "Bind this tab";
-}
-
-function handlePortInputChange() {
-  const value = Number(floatingEls.portInput.value);
-  if (!Number.isInteger(value) || value < 1 || value > 65535) {
-    floatingEls.portInput.classList.add("invalid");
-    return;
-  }
-
-  floatingEls.portInput.classList.remove("invalid");
-  scheduleSettingsSave({ ...floatingState.settings, port: value });
 }
 
 function handleAutoSendChange() {
