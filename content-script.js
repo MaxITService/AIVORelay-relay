@@ -1433,8 +1433,33 @@ function formatTime(timestamp) {
   }
 }
 
+function setupFloatingUiWatcher() {
+  if (window.top !== window) return;
+
+  const observer = new MutationObserver(() => {
+    if (!document.getElementById(FLOATING_UI_ID) && document.body) {
+      floatingEls = null;
+      initFloatingUi();
+    }
+  });
+
+  const startObserving = () => {
+    if (document.body) {
+      observer.observe(document.body, { childList: true });
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startObserving, { once: true });
+  } else {
+    startObserving();
+  }
+}
+
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initFloatingUi, { once: true });
 } else {
   initFloatingUi();
 }
+
+setupFloatingUiWatcher();
