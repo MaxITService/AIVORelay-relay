@@ -1,0 +1,455 @@
+/**
+ * AivoRelay Floating UI Styles
+ * Liquid glass design matching the popup aesthetic
+ */
+
+#hc-floating-ui {
+  --hc-bg: rgba(248, 243, 235, 0.92);
+  --hc-bg-glass: rgba(255, 255, 255, 0.75);
+  --hc-border: rgba(214, 201, 182, 0.5);
+  --hc-border-glass: rgba(255, 255, 255, 0.6);
+  --hc-text: #211d17;
+  --hc-muted: #6a5f51;
+  --hc-accent: #187c6b;
+  --hc-accent-soft: rgba(24, 124, 107, 0.15);
+  --hc-accent-glow: rgba(24, 124, 107, 0.4);
+  --hc-success: #059669;
+  --hc-success-glow: rgba(5, 150, 105, 0.5);
+  --hc-error: #b42318;
+  --hc-shadow: 0 16px 40px rgba(33, 29, 23, 0.15), 0 4px 12px rgba(33, 29, 23, 0.08);
+  --hc-shadow-glow: 0 8px 32px rgba(24, 124, 107, 0.12);
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2147483647;
+  font-family: "Trebuchet MS", "Gill Sans", "Calibri", sans-serif;
+  color: var(--hc-text);
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: flex-end;
+}
+
+#hc-floating-ui * {
+  box-sizing: border-box;
+}
+
+#hc-floating-ui button {
+  all: unset;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+#hc-floating-ui input {
+  font-family: inherit;
+}
+
+/* Minimized bar - liquid glass pill */
+#hc-floating-ui .hc-min {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--hc-bg-glass) 0%, var(--hc-bg) 100%);
+  border: 1px solid var(--hc-border-glass);
+  box-shadow: var(--hc-shadow), inset 0 1px 0 rgba(255,255,255,0.5);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  position: relative;
+  overflow: hidden;
+}
+
+#hc-floating-ui .hc-min::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+  pointer-events: none;
+}
+
+#hc-floating-ui .hc-drag-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+#hc-floating-ui .hc-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Main toggle button - stylized A */
+#hc-floating-ui .hc-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.7));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0;
+  color: var(--hc-accent);
+  box-shadow: 0 2px 8px rgba(24, 124, 107, 0.15), inset 0 1px 0 rgba(255,255,255,0.8);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-style: italic;
+}
+
+#hc-floating-ui .hc-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px var(--hc-accent-glow), inset 0 1px 0 rgba(255,255,255,0.9);
+  background: linear-gradient(145deg, rgba(255,255,255,1), rgba(255,255,255,0.85));
+}
+
+/* Status dots container */
+#hc-floating-ui .hc-status-dots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 0;
+}
+
+/* Server connection dot */
+#hc-floating-ui .hc-server-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #999, #bbb);
+  transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: help;
+}
+
+#hc-floating-ui[data-connected="true"] .hc-server-dot {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  box-shadow: 0 0 8px rgba(46, 204, 113, 0.6), 0 0 3px rgba(46, 204, 113, 0.8);
+}
+
+#hc-floating-ui[data-connected="false"] .hc-server-dot {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  box-shadow: 0 0 6px rgba(231, 76, 60, 0.4);
+}
+
+/* Binding toggle with dot */
+#hc-floating-ui .hc-bind-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(255,255,255,0.8), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#hc-floating-ui .hc-bind-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Binding dot (separate visual from server dot - purple) */
+#hc-floating-ui .hc-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9aa0a6, #bdc3c7);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid rgba(255,255,255,0.6);
+}
+
+#hc-floating-ui[data-bound="true"] .hc-dot {
+  background: linear-gradient(135deg, #a112dd, #8a0fb8);
+  box-shadow: 0 0 10px rgba(161, 18, 221, 0.6), 0 0 4px rgba(161, 18, 221, 0.8);
+  border-color: rgba(255,255,255,0.8);
+}
+
+/* Panel - liquid glass card */
+#hc-floating-ui .hc-panel {
+  width: 300px;
+  max-height: 60vh;
+  overflow: hidden;
+  background: linear-gradient(165deg, var(--hc-bg-glass) 0%, var(--hc-bg) 100%);
+  border: 1px solid var(--hc-border-glass);
+  border-radius: 20px;
+  box-shadow: var(--hc-shadow), inset 0 1px 0 rgba(255,255,255,0.4);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  padding: 14px;
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#hc-floating-ui .hc-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+  pointer-events: none;
+}
+
+#hc-floating-ui[data-collapsed="true"] .hc-panel {
+  opacity: 0;
+  transform: translateY(10px) scale(0.95);
+  pointer-events: none;
+  max-height: 0;
+  padding: 0;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* Panel header */
+#hc-floating-ui .hc-panel-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+#hc-floating-ui .hc-title-text {
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+  background: linear-gradient(135deg, var(--hc-text) 0%, var(--hc-accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+#hc-floating-ui .hc-bind-text {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--hc-muted);
+}
+
+#hc-floating-ui .hc-collapse {
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: var(--hc-muted);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: all 150ms ease;
+}
+
+#hc-floating-ui .hc-collapse:hover {
+  color: var(--hc-text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Section styling */
+#hc-floating-ui .hc-section {
+  margin-top: 12px;
+}
+
+/* Checkbox controls */
+#hc-floating-ui .hc-checkbox {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--hc-muted);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+#hc-floating-ui .hc-checkbox:hover {
+  color: var(--hc-text);
+}
+
+#hc-floating-ui .hc-checkbox input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--hc-accent);
+  cursor: pointer;
+}
+
+/* Messages header */
+#hc-floating-ui .hc-messages-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hc-muted);
+}
+
+#hc-floating-ui .hc-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#hc-floating-ui .hc-count {
+  min-width: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--hc-accent-soft), rgba(24, 124, 107, 0.22));
+  color: var(--hc-accent);
+  font-weight: 700;
+  font-size: 11px;
+  text-align: center;
+  border: 1px solid rgba(24, 124, 107, 0.15);
+  cursor: help;
+}
+
+#hc-floating-ui .hc-clear-btn {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--hc-error);
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  border: 1px solid rgba(180, 35, 24, 0.25);
+  transition: all 150ms ease;
+}
+
+#hc-floating-ui .hc-clear-btn:hover:not(:disabled) {
+  background: rgba(180, 35, 24, 0.08);
+  border-color: rgba(180, 35, 24, 0.4);
+}
+
+#hc-floating-ui .hc-clear-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Messages list */
+#hc-floating-ui .hc-messages-list {
+  margin-top: 10px;
+  max-height: 200px;
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+/* Individual message cards */
+#hc-floating-ui .hc-message {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.65));
+  padding: 8px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: box-shadow 150ms ease;
+}
+
+#hc-floating-ui .hc-message:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+#hc-floating-ui .hc-message-time {
+  font-size: 10px;
+  color: var(--hc-muted);
+  margin-bottom: 4px;
+}
+
+#hc-floating-ui .hc-message-text {
+  font-size: 11px;
+  color: var(--hc-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+#hc-floating-ui .hc-message-status {
+  font-size: 10px;
+  color: var(--hc-muted);
+  margin-bottom: 4px;
+}
+
+/* Attachments */
+#hc-floating-ui .hc-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+#hc-floating-ui .hc-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(255,255,255,0.75));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+#hc-floating-ui .hc-attachment-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+#hc-floating-ui .hc-attachment-icon {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--hc-accent);
+  background: var(--hc-accent-soft);
+  border-radius: 999px;
+  padding: 2px 6px;
+}
+
+#hc-floating-ui .hc-attachment-label {
+  font-size: 10px;
+  color: var(--hc-muted);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#hc-floating-ui .hc-attachment-more {
+  font-size: 10px;
+  color: var(--hc-muted);
+  align-self: center;
+}
+
+/* Message actions */
+#hc-floating-ui .hc-message-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#hc-floating-ui .hc-retry-btn {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--hc-error);
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.6));
+  border: 1px solid rgba(180, 35, 24, 0.3);
+  transition: all 150ms ease;
+}
+
+#hc-floating-ui .hc-retry-btn:hover {
+  background: rgba(180, 35, 24, 0.08);
+  border-color: rgba(180, 35, 24, 0.5);
+}
+
+/* Empty state */
+#hc-floating-ui .hc-empty {
+  font-size: 11px;
+  color: var(--hc-muted);
+  text-align: center;
+  padding: 16px 8px;
+  opacity: 0.8;
+}

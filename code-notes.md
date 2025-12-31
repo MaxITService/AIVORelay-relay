@@ -88,3 +88,13 @@ MV3 service workers sleep after ~30s of inactivity, losing in-memory state. The 
 - When messages are trimmed, `deleteBlobsForMessage()` removes associated blobs from IndexedDB.
 - `trimMessageList()` is async because it performs IndexedDB cleanup.
 - `getAttachmentData()` returns bytes as `Array<number>` for chrome.tabs.sendMessage compatibility (ArrayBuffer cannot be serialized across message passing).
+
+## Message Reliability & Retry System
+
+- **Lossless Delivery**: Uses a cursor-based tracking system. The extension tracks the last processed message ID. On crash or restart, it resumes polling from the stored cursor, ensuring no messages are skipped.
+- **Long-Polling**: Uses a persistent connection (25s hold) for near real-time delivery with significantly reduced server load compared to short intervals.
+- **Bundle Prioritization (LIFO)**: The pending bundle queue (`pendingBundles`) sorts items by creation time descending. **Newest messages are processed first**. This prevents old, stuck attachments (e.g., large files on slow networks) from blocking fresh, lightweight text messages.
+- **Queue Trimming**: Explicitly keeps the _newest_ 200 bundles and drops the oldest to maintain the "freshness first" strategy.
+- **Attachment Retries**: Failed attachments are retried up to 2 times with a 1.5s delay. Text content is delivered immediately; only attachments wait.
+- **Manual Retry**: If all automatic attempts fail (e.g. 404 error), the message status becomes 'error', and a "Retry" button appears in the floating UI.
+- **Thundering Herd**: Note that _retry jitter_ (randomness) is explicitly **disabled** in the current implementation; backoff is deterministic.

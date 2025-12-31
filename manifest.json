@@ -37,7 +37,10 @@
         "https://x.com/i/grok*",
         "https://aistudio.google.com/*"
       ],
-      "css": ["per-website-button-clicking-mechanics/ocp_toast.css"],
+      "css": [
+        "per-website-button-clicking-mechanics/ocp_toast.css",
+        "floating-ui.css"
+      ],
       "js": [
         "log.js",
         "per-website-button-clicking-mechanics/ocp_toast.js",

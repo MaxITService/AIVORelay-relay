@@ -39,7 +39,7 @@ async function longPollLoop() {
         ERROR_BACKOFF_MAX_MS
       );
       console.warn(`[aivo-relay] Long-poll error (attempt ${consecutiveErrors}), retry in ${backoff}ms:`, err?.message || err);
-      
+
       // Show badge if persistent errors
       if (consecutiveErrors >= 3) {
         chrome.action.setBadgeText({ text: "!" });
@@ -79,7 +79,7 @@ async function pollOnceWithWait(waitSeconds = 0) {
 
   // Use longer timeout for long-poll requests
   const timeoutMs = waitSeconds > 0 ? LONG_POLL_TIMEOUT_MS : DEFAULT_SETTINGS.timeoutMs;
-  
+
   try {
     const settings = await getSettings();
 
@@ -374,7 +374,13 @@ async function pollOnce() {
 }
 
 async function processPendingBundles(pendingBundles, settings, boundTabIds, messageList, dedupeSet, serverConfig = null) {
-  const pendingIds = Object.keys(pendingBundles);
+  // Sort pending bundles by creation time DESCENDING (Newest First)
+  // This ensures that fresh messages are prioritized over old stuck ones.
+  const pendingIds = Object.keys(pendingBundles).sort((a, b) => {
+    const timeA = pendingBundles[a]?.createdAt || 0;
+    const timeB = pendingBundles[b]?.createdAt || 0;
+    return timeB - timeA;
+  });
   if (!pendingIds.length) {
     return { pendingBundles, messageList, dedupeSet };
   }

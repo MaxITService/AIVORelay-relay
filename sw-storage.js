@@ -288,8 +288,10 @@ async function trimMessageList(list) {
 function trimPendingBundles(pendingBundles) {
   const entries = Object.values(pendingBundles || {});
   if (entries.length <= MAX_PENDING_BUNDLES) return pendingBundles;
-  const sorted = entries.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const trimmed = sorted.slice(-MAX_PENDING_BUNDLES);
+  // Sort by creation time DESC (Newest First)
+  const sorted = entries.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  // Keep the most recent N bundles
+  const trimmed = sorted.slice(0, MAX_PENDING_BUNDLES);
   const next = {};
   for (const entry of trimmed) {
     next[entry.id] = entry;
