@@ -7,7 +7,7 @@ const DEFAULT_SETTINGS = {
   pollMinutes: 1, // Reduced frequency - long-poll handles real-time delivery
   timeoutMs: 3000, // Legacy timeout for non-long-poll requests
   autoSend: true,
-  maxStoredMessages: 5,
+  maxStoredMessages: 50,
   singleTabBindingMode: true
 };
 
@@ -28,7 +28,7 @@ const RECONNECT_DELAY_MS = 500;        // Gap between long-poll cycles
 const ERROR_BACKOFF_BASE_MS = 1000;    // Exponential backoff base
 const ERROR_BACKOFF_MAX_MS = 30000;    // Max backoff on errors
 
-const MAX_MESSAGES = 5;
+const MAX_MESSAGES = 50;
 const MAX_DEDUPED_IDS = 400;
 const MAX_PENDING_BUNDLES = 200;
 const STATUS_PREFIX = "[hc-status]";

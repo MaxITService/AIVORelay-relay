@@ -628,5 +628,12 @@ async function retryMessage(messageId) {
     ...delivery,
     overrideStatus: delivery.ok ? "queued" : delivery.reason
   });
-  await chrome.storage.local.set({ messages: await trimMessageList(updated) });
+
+  // Increment retry count for text messages too
+  const withRetryCount = upsertMessageList(updated, {
+    id: target.id,
+    retryCount: (target.retryCount || 0) + 1
+  });
+
+  await chrome.storage.local.set({ messages: await trimMessageList(withRetryCount) });
 }

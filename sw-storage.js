@@ -267,10 +267,12 @@ async function updateMessageDelivery(messageId, status, detail) {
 
 async function trimMessageList(list) {
   if (!Array.isArray(list)) return [];
-  if (list.length <= MAX_MESSAGES) return list;
+  const settings = await getSettings();
+  const limit = Math.max(1, Number(settings.maxStoredMessages) || MAX_MESSAGES);
+  if (list.length <= limit) return list;
 
-  const removed = list.slice(0, list.length - MAX_MESSAGES);
-  const kept = list.slice(-MAX_MESSAGES);
+  const removed = list.slice(0, list.length - limit);
+  const kept = list.slice(-limit);
 
   for (const msg of removed) {
     if (msg.id) {
