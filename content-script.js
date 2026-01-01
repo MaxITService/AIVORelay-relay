@@ -371,7 +371,11 @@ function initFloatingUi() {
   setupFloatingDrag();
   void applyStoredPosition();
 
+  // Listener registration is idempotent (won't duplicate if already added)
   chrome.storage.onChanged.addListener(handleFloatingStorageChange);
+
+  // Render immediately using cached state to avoid flashes of "default" state during resiliency restores
+  renderFloatingUi();
 
   void refreshFloatingState();
 }
@@ -1044,33 +1048,119 @@ function formatTime(timestamp) {
   }
 }
 
-function setupFloatingUiWatcher() {
+/* =============================================================================
+   Enhanced Resiliency & SPA Handling
+   Ported/Adapted from One Click Prompts for robust persistence.
+   ============================================================================= */
+
+function startResiliencyMechanism() {
   if (window.top !== window) return;
 
-  const observer = new MutationObserver(() => {
-    if (!document.getElementById(FLOATING_UI_ID) && document.body) {
-      floatingEls = null;
+  // 1. Initial Injection
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => {
       initFloatingUi();
+      runAdaptiveResiliencyChecks();
+    }, { once: true });
+  } else {
+    initFloatingUi();
+    runAdaptiveResiliencyChecks();
+  }
+
+  // 2. Patch History API for SPA navigation detection
+  patchHistoryMethods();
+
+  // 3. Observer URL changes
+  setupSpaUrlObserver();
+}
+
+function patchHistoryMethods() {
+  const methods = ['pushState', 'replaceState'];
+  methods.forEach(method => {
+    try {
+      const original = history[method];
+      history[method] = function (...args) {
+        const result = original.apply(this, args);
+        // Slight delay to allow framework to enact changes
+        setTimeout(checkAndRestoreFloatingUi, 100);
+        return result;
+      };
+    } catch (e) {
+      console.warn("[AivoRelay] History patch failed:", e);
+    }
+  });
+}
+
+function setupSpaUrlObserver() {
+  let previousUrl = location.href;
+  const observer = new MutationObserver(() => {
+    if (location.href !== previousUrl) {
+      previousUrl = location.href;
+      setTimeout(checkAndRestoreFloatingUi, 100);
+    }
+  });
+  observer.observe(document, { subtree: true, childList: true });
+}
+
+function runAdaptiveResiliencyChecks() {
+  // A. Long-lived DOM Observer
+  // Disconnect old if exists (though in this scope it's fresh)
+  const observer = new MutationObserver((mutations) => {
+    let shouldCheck = false;
+    for (const m of mutations) {
+      if (m.removedNodes.length > 0) {
+        shouldCheck = true;
+        break;
+      }
+    }
+    if (shouldCheck || !document.getElementById(FLOATING_UI_ID)) {
+      checkAndRestoreFloatingUi();
     }
   });
 
   const startObserving = () => {
     if (document.body) {
-      observer.observe(document.body, { childList: true });
+      observer.observe(document.body, { childList: true, subtree: true });
     }
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", startObserving, { once: true });
-  } else {
+  if (document.body) {
     startObserving();
+  } else {
+    document.addEventListener('DOMContentLoaded', startObserving, { once: true });
+  }
+
+  // B. Adaptive Polling (The "OCP" heartbeat)
+  let checkCount = 0;
+  const check = () => {
+    checkAndRestoreFloatingUi();
+    checkCount++;
+    // Aggressive checks for first 15 seconds (30 * 500ms = 15s), then slower (5s)
+    const delay = checkCount < 30 ? 500 : 5000;
+    setTimeout(check, delay);
+  };
+  check();
+}
+
+function checkAndRestoreFloatingUi() {
+  if (window.top !== window) return;
+
+  const uiExists = !!document.getElementById(FLOATING_UI_ID);
+
+  // If UI is missing, re-init
+  if (!uiExists) {
+    floatingEls = null; // Ensure fresh rebuild
+    initFloatingUi();
+  }
+  // Safety check: if UI exists but we lost our internal references (floatingEls is null),
+  // we must attach to it or rebuild it to respond to messages.
+  else if (uiExists && !floatingEls) {
+    // Nuke and rebuild to be safe and ensure all listeners are bound
+    const el = document.getElementById(FLOATING_UI_ID);
+    if (el) el.remove();
+    initFloatingUi();
   }
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initFloatingUi, { once: true });
-} else {
-  initFloatingUi();
-}
-
-setupFloatingUiWatcher();
+// Start the engine
+startResiliencyMechanism();
