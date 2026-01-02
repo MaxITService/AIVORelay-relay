@@ -44,6 +44,7 @@ async function longPollLoop() {
       if (consecutiveErrors >= 3) {
         chrome.action.setBadgeText({ text: "!" });
         chrome.action.setBadgeBackgroundColor({ color: "#f59e0b" }); // Amber for connectivity issues
+        chrome.action.setTitle({ title: `AivoRelay: Connection issues (${consecutiveErrors} failed attempts)\n${err?.message || err}` });
       }
 
       await sleep(backoff);
@@ -107,14 +108,16 @@ async function pollOnceWithWait(waitSeconds = 0) {
       if (response.status === 401) {
         chrome.action.setBadgeText({ text: "!" });
         chrome.action.setBadgeBackgroundColor({ color: "#b42318" });
+        chrome.action.setTitle({ title: "AivoRelay: Authentication failed\nCheck that your password matches the AivoRelay app." });
         throw new Error("Authentication failed. Check that your password matches the AivoRelay app.");
       }
       const bodyText = await response.text();
       throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
     }
 
-    // Clear badge on successful connection
+    // Clear badge and reset title on successful connection
     chrome.action.setBadgeText({ text: "" });
+    chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
     const bodyText = await response.text();
     const parsed = parseMaybeJson(bodyText);
@@ -255,14 +258,16 @@ async function pollOnce() {
         // Show red badge on extension icon for auth failure
         chrome.action.setBadgeText({ text: "!" });
         chrome.action.setBadgeBackgroundColor({ color: "#b42318" });
+        chrome.action.setTitle({ title: "AivoRelay: Authentication failed\nCheck that your password matches the AivoRelay app." });
         throw new Error("Authentication failed. Check that your password matches the AivoRelay app.");
       }
       const bodyText = await response.text();
       throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
     }
 
-    // Clear badge on successful connection
+    // Clear badge and reset title on successful connection
     chrome.action.setBadgeText({ text: "" });
+    chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
     const bodyText = await response.text();
     const parsed = parseMaybeJson(bodyText);
