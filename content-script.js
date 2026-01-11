@@ -5,7 +5,7 @@ let messageInFlight = false;
 
 const UI_DEFAULT_SETTINGS = {
   host: "127.0.0.1",
-  port: 63155,
+  port: 38243,
   path: "/messages",
   autoSend: true
 };
@@ -24,7 +24,8 @@ let floatingState = {
   status: null,
   messages: [],
   boundTabIds: [],
-  boundTabInfos: {}
+  boundTabInfos: {},
+  tabAutoSendOverrides: {}
 };
 
 let floatingEls = null;
@@ -173,10 +174,23 @@ function isSupportedSite(site) {
 }
 
 async function getAutoSendSetting() {
-  const { settings } = await chrome.storage.local.get({
-    settings: { autoSend: true }
+  const stored = await chrome.storage.local.get({
+    settings: { autoSend: true },
+    tabAutoSendOverrides: {}
   });
-  return settings?.autoSend !== false;
+  const globalDefault = stored.settings?.autoSend !== false;
+
+  // Check for per-tab override
+  const tabId = await getCurrentTabId();
+  if (Number.isInteger(tabId)) {
+    const overrides = stored.tabAutoSendOverrides || {};
+    const tabOverride = overrides[tabId];
+    if (tabOverride !== undefined && tabOverride !== null) {
+      return tabOverride;
+    }
+  }
+
+  return globalDefault;
 }
 
 async function dispatchToSite(site, payload, autoSend) {
@@ -357,6 +371,10 @@ function initFloatingUi() {
     void toggleBinding();
   });
 
+  floatingEls.autoSendToggleBtn.addEventListener("click", () => {
+    void toggleTabAutoSend();
+  });
+
   floatingEls.autoSendInput.addEventListener("change", handleAutoSendChange);
   if (floatingEls.singleTabModeInput) {
     floatingEls.singleTabModeInput.addEventListener("change", handleSingleTabModeChange);
@@ -390,6 +408,7 @@ function buildFloatingUi() {
   root.dataset.collapsed = "true";
   root.dataset.bound = "false";
   root.dataset.connected = "false";
+  root.dataset.autosend = "default";
 
   root.innerHTML = `
     <div class="hc-min hc-drag-handle">
@@ -397,6 +416,9 @@ function buildFloatingUi() {
       <div class="hc-status-dots">
         <span class="hc-server-dot" title="Server: Checking..."></span>
       </div>
+      <button class="hc-autosend-toggle" type="button" aria-pressed="true" title="Toggle auto-send for this tab">
+        <span class="hc-autosend-dot" title="Auto-send: On (using default)"></span>
+      </button>
       <button class="hc-bind-toggle" type="button" aria-pressed="false" title="Toggle bind for this tab">
         <span class="hc-dot" title="Page binding status"></span>
       </button>
@@ -438,6 +460,7 @@ function buildFloatingUi() {
     panelHeader: root.querySelector(".hc-panel-header"),
     toggleBtn: root.querySelector(".hc-toggle"),
     serverDot: root.querySelector(".hc-server-dot"),
+    autoSendToggleBtn: root.querySelector(".hc-autosend-toggle"),
     bindToggleBtn: root.querySelector(".hc-bind-toggle"),
     collapseBtn: root.querySelector(".hc-collapse"),
     bindTextEl: root.querySelector("#hc-bind-text"),
@@ -601,7 +624,8 @@ async function refreshFloatingState() {
     status: null,
     messages: [],
     boundTabIds: [],
-    boundTabInfos: {}
+    boundTabInfos: {},
+    tabAutoSendOverrides: {}
   });
 
   floatingState = {
@@ -609,7 +633,8 @@ async function refreshFloatingState() {
     status: stored.status || null,
     messages: Array.isArray(stored.messages) ? stored.messages : [],
     boundTabIds: Array.isArray(stored.boundTabIds) ? stored.boundTabIds : [],
-    boundTabInfos: (stored.boundTabInfos && typeof stored.boundTabInfos === "object") ? stored.boundTabInfos : {}
+    boundTabInfos: (stored.boundTabInfos && typeof stored.boundTabInfos === "object") ? stored.boundTabInfos : {},
+    tabAutoSendOverrides: (stored.tabAutoSendOverrides && typeof stored.tabAutoSendOverrides === "object") ? stored.tabAutoSendOverrides : {}
   };
 
   currentTabId = await getCurrentTabId();
@@ -648,6 +673,12 @@ function handleFloatingStorageChange(changes, area) {
       : {};
   }
 
+  if (changes.tabAutoSendOverrides) {
+    floatingState.tabAutoSendOverrides = (changes.tabAutoSendOverrides.newValue && typeof changes.tabAutoSendOverrides.newValue === "object")
+      ? changes.tabAutoSendOverrides.newValue
+      : {};
+  }
+
   renderFloatingUi();
 }
 
@@ -657,6 +688,7 @@ function renderFloatingUi() {
   renderFloatingStatus();
   renderFloatingMessages();
   renderFloatingBinding();
+  renderFloatingTabAutoSend();
 }
 
 function renderFloatingSettings() {
@@ -955,6 +987,40 @@ function renderFloatingBinding() {
   floatingEls.bindToggleBtn.title = isBoundToCurrent ? "Unbind this tab" : "Bind this tab";
 }
 
+function renderFloatingTabAutoSend() {
+  const overrides = floatingState.tabAutoSendOverrides || {};
+  const globalDefault = floatingState.settings?.autoSend !== false;
+  const tabOverride = Number.isInteger(currentTabId) ? overrides[currentTabId] : undefined;
+  const hasOverride = tabOverride !== undefined && tabOverride !== null;
+  const effectiveValue = hasOverride ? tabOverride : globalDefault;
+
+  // Set data attribute for CSS styling: "on", "off", or "default"
+  let stateAttr;
+  if (!hasOverride) {
+    stateAttr = "default";
+  } else {
+    stateAttr = effectiveValue ? "on" : "off";
+  }
+  floatingEls.root.dataset.autosend = stateAttr;
+
+  // Update button aria state
+  floatingEls.autoSendToggleBtn.setAttribute("aria-pressed", effectiveValue ? "true" : "false");
+
+  // Update dot tooltip
+  const autoSendDot = floatingEls.autoSendToggleBtn.querySelector(".hc-autosend-dot");
+  if (autoSendDot) {
+    const statusText = effectiveValue ? "On" : "Off";
+    const sourceText = hasOverride ? "tab override" : "using default";
+    autoSendDot.title = `Auto-send: ${statusText} (${sourceText})`;
+  }
+
+  // Update button tooltip
+  const nextStateHint = hasOverride
+    ? "Click to reset to default"
+    : `Click to ${globalDefault ? "disable" : "enable"} for this tab`;
+  floatingEls.autoSendToggleBtn.title = `Auto-send: ${effectiveValue ? "On" : "Off"} - ${nextStateHint}`;
+}
+
 function handleAutoSendChange() {
   scheduleSettingsSave({ ...floatingState.settings, autoSend: floatingEls.autoSendInput.checked });
 }
@@ -994,6 +1060,45 @@ async function toggleBinding() {
     await chrome.runtime.sendMessage({ type: "TOGGLE_BIND" });
   } catch (err) {
     console.warn("Failed to toggle bind", err);
+  }
+}
+
+async function toggleTabAutoSend() {
+  if (!Number.isInteger(currentTabId)) return;
+
+  const overrides = floatingState.tabAutoSendOverrides || {};
+  const currentOverride = overrides[currentTabId];
+  const globalDefault = floatingState.settings?.autoSend !== false;
+
+  // Cycle through states: default -> explicit on -> explicit off -> default
+  // If no override (using default), set to opposite of default
+  // If override exists, toggle it or clear to return to default
+  let nextValue;
+  if (currentOverride === undefined || currentOverride === null) {
+    // Currently using default, set explicit opposite
+    nextValue = !globalDefault;
+  } else if (currentOverride === !globalDefault) {
+    // Currently opposite of default, return to default (clear override)
+    nextValue = null;
+  } else {
+    // Currently same as default but explicit, set to opposite
+    nextValue = !currentOverride;
+  }
+
+  const newOverrides = { ...overrides };
+  if (nextValue === null) {
+    delete newOverrides[currentTabId];
+  } else {
+    newOverrides[currentTabId] = nextValue;
+  }
+
+  floatingState.tabAutoSendOverrides = newOverrides;
+  renderFloatingTabAutoSend();
+
+  try {
+    await chrome.storage.local.set({ tabAutoSendOverrides: newOverrides });
+  } catch (err) {
+    console.warn("Failed to save tab auto-send override", err);
   }
 }
 

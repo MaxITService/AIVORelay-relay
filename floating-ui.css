@@ -167,6 +167,56 @@
   border-color: rgba(255,255,255,0.8);
 }
 
+/* Auto-send toggle button (similar to bind toggle) */
+#hc-floating-ui .hc-autosend-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(255,255,255,0.8), rgba(255,255,255,0.5));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#hc-floating-ui .hc-autosend-toggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Auto-send dot - orange/amber color scheme */
+#hc-floating-ui .hc-autosend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9aa0a6, #bdc3c7);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1.5px solid rgba(255,255,255,0.6);
+}
+
+/* Auto-send ON (green - same as server connected) */
+#hc-floating-ui[data-autosend="on"] .hc-autosend-dot {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.6), 0 0 4px rgba(46, 204, 113, 0.8);
+  border-color: rgba(255,255,255,0.8);
+}
+
+/* Auto-send OFF (red/orange) */
+#hc-floating-ui[data-autosend="off"] .hc-autosend-dot {
+  background: linear-gradient(135deg, #e67e22, #d35400);
+  box-shadow: 0 0 10px rgba(230, 126, 34, 0.6), 0 0 4px rgba(230, 126, 34, 0.8);
+  border-color: rgba(255,255,255,0.8);
+}
+
+/* Auto-send DEFAULT (follows global setting - subtle blue indicator) */
+#hc-floating-ui[data-autosend="default"] .hc-autosend-dot {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  box-shadow: 0 0 8px rgba(52, 152, 219, 0.5), 0 0 3px rgba(52, 152, 219, 0.7);
+  border-color: rgba(255,255,255,0.7);
+}
+
 /* Panel - liquid glass card */
 #hc-floating-ui .hc-panel {
   width: 300px;
