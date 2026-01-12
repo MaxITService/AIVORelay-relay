@@ -251,11 +251,11 @@
   border-color: rgba(255,255,255,0.3);
 }
 
-/* Auto-send OFF (red/orange) */
+/* Auto-send OFF (gray/disabled) */
 #hc-floating-ui[data-autosend="off"] .hc-autosend-dot {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.6), 0 0 4px rgba(245, 158, 11, 0.8);
-  border-color: rgba(255,255,255,0.3);
+  background: linear-gradient(135deg, #57534e, #78716c);
+  box-shadow: none;
+  border-color: rgba(255,255,255,0.1);
 }
 
 /* Auto-send DEFAULT (follows global setting - purple indicator) */
@@ -271,7 +271,7 @@
 }
 
 #hc-floating-ui[data-autosend="off"] .hc-autosend-circular .hc-circular-text text {
-  fill: var(--hc-warning);
+  fill: var(--hc-muted);
 }
 
 #hc-floating-ui[data-autosend="default"] .hc-autosend-circular .hc-circular-text text {
