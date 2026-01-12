@@ -375,7 +375,6 @@ function initFloatingUi() {
     void toggleTabAutoSend();
   });
 
-  floatingEls.autoSendInput.addEventListener("change", handleAutoSendChange);
   if (floatingEls.singleTabModeInput) {
     floatingEls.singleTabModeInput.addEventListener("change", handleSingleTabModeChange);
   }
@@ -469,14 +468,6 @@ function buildFloatingUi() {
       </div>
       <div class="hc-section">
         <div class="hc-toggle-row">
-          <label class="hc-toggle-switch" for="hc-auto-send">
-            <input id="hc-auto-send" type="checkbox" />
-            <span class="hc-switch"></span>
-            <span class="hc-toggle-text">Auto-send messages</span>
-          </label>
-          <span class="hc-toggle-hint">Default for all tabs</span>
-        </div>
-        <div class="hc-toggle-row">
           <label class="hc-toggle-switch" for="hc-single-tab-mode">
             <input id="hc-single-tab-mode" type="checkbox" />
             <span class="hc-switch"></span>
@@ -508,7 +499,6 @@ function buildFloatingUi() {
     bindToggleBtn: root.querySelector(".hc-bind-toggle"),
     collapseBtn: root.querySelector(".hc-collapse"),
     bindTextEl: root.querySelector("#hc-bind-text"),
-    autoSendInput: root.querySelector("#hc-auto-send"),
     singleTabModeInput: root.querySelector("#hc-single-tab-mode"),
     messageCountEl: root.querySelector("#hc-message-count"),
     clearMessagesBtn: root.querySelector("#hc-clear-messages"),
@@ -737,7 +727,6 @@ function renderFloatingUi() {
 
 function renderFloatingSettings() {
   const settings = floatingState.settings || UI_DEFAULT_SETTINGS;
-  floatingEls.autoSendInput.checked = settings.autoSend !== false;
   if (floatingEls.singleTabModeInput) {
     floatingEls.singleTabModeInput.checked = settings.singleTabBindingMode !== false;
   }
@@ -1063,10 +1052,6 @@ function renderFloatingTabAutoSend() {
     ? "Click to reset to default"
     : `Click to ${globalDefault ? "disable" : "enable"} for this tab`;
   floatingEls.autoSendToggleBtn.title = `Auto-send: ${effectiveValue ? "On" : "Off"} - ${nextStateHint}`;
-}
-
-function handleAutoSendChange() {
-  scheduleSettingsSave({ ...floatingState.settings, autoSend: floatingEls.autoSendInput.checked });
 }
 
 function handleSingleTabModeChange() {
