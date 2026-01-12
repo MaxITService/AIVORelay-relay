@@ -412,24 +412,30 @@ function buildFloatingUi() {
 
   // SVG circular text for "SEND" label (around auto-send button)
   const sendCircularText = `
-    <svg class="hc-circular-text" viewBox="0 0 36 36">
+    <svg class="hc-circular-text" viewBox="0 0 48 48">
       <defs>
-        <path id="send-circle" d="M 18,18 m -14,0 a 14,14 0 1,1 28,0 a 14,14 0 1,1 -28,0"/>
+        <path id="send-circle" d="M 24,24 m -15,0 a 15,15 0 1,1 30,0 a 15,15 0 1,1 -30,0"/>
       </defs>
       <text>
-        <textPath href="#send-circle" startOffset="0%">SEND SEND SEND SEND </textPath>
+        <textPath href="#send-circle" startOffset="25%" text-anchor="middle">AUTO</textPath>
+      </text>
+      <text>
+        <textPath href="#send-circle" startOffset="75%" text-anchor="middle">SEND</textPath>
       </text>
     </svg>
   `;
 
   // SVG circular text for "BIND" label (around bind button)
   const bindCircularText = `
-    <svg class="hc-circular-text" viewBox="0 0 36 36">
+    <svg class="hc-circular-text" viewBox="0 0 48 48">
       <defs>
-        <path id="bind-circle" d="M 18,18 m -14,0 a 14,14 0 1,1 28,0 a 14,14 0 1,1 -28,0"/>
+        <path id="bind-circle" d="M 24,24 m -15,0 a 15,15 0 1,1 30,0 a 15,15 0 1,1 -30,0"/>
       </defs>
       <text>
-        <textPath href="#bind-circle" startOffset="0%">BIND BIND BIND BIND </textPath>
+        <textPath href="#bind-circle" startOffset="25%" text-anchor="middle">BIND</textPath>
+      </text>
+      <text>
+        <textPath href="#bind-circle" startOffset="75%" text-anchor="middle">BIND</textPath>
       </text>
     </svg>
   `;
