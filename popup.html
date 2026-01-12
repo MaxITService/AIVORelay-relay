@@ -6,27 +6,26 @@
     <title>AivoRelay</title>
     <style>
       :root {
-        color-scheme: light;
-        --bg: #f2ebe1;
-        --bg-accent: #f8e2bd;
-        --surface: rgba(255, 255, 255, 0.85);
-        --surface-glass: rgba(255, 255, 255, 0.65);
-        --border: rgba(214, 201, 182, 0.6);
-        --border-glass: rgba(255, 255, 255, 0.4);
-        --text: #211d17;
-        --muted: #6a5f51;
-        --accent: #187c6b;
-        --accent-glow: rgba(24, 124, 107, 0.4);
-        --accent-soft: rgba(24, 124, 107, 0.15);
-        --error: #b42318;
-        --error-soft: rgba(180, 35, 24, 0.1);
-        --warning: #b45309;
-        --warning-soft: #fef3c7;
-        --success: #059669;
-        --success-soft: rgba(5, 150, 105, 0.12);
-        --success-glow: rgba(5, 150, 105, 0.35);
-        --shadow: 0 12px 32px rgba(55, 42, 24, 0.12);
-        --shadow-glow: 0 8px 32px rgba(24, 124, 107, 0.15);
+        color-scheme: dark;
+        --bg-darkest: #110f0d;
+        --bg-dark: #1a1614;
+        --bg-medium: #221e1b;
+        --bg-card: #2a2522;
+        --border: rgba(168, 85, 247, 0.2);
+        --border-subtle: rgba(255, 255, 255, 0.08);
+        --text: #f5f5f5;
+        --text-secondary: #a8a29e;
+        --muted: #78716c;
+        --accent: #a855f7;
+        --accent-soft: rgba(168, 85, 247, 0.15);
+        --accent-glow: rgba(168, 85, 247, 0.4);
+        --error: #ef4444;
+        --error-soft: rgba(239, 68, 68, 0.15);
+        --warning: #f59e0b;
+        --warning-soft: rgba(245, 158, 11, 0.15);
+        --success: #22c55e;
+        --success-soft: rgba(34, 197, 94, 0.15);
+        --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
       }
 
       * {
@@ -35,29 +34,18 @@
 
       html,
       body {
-        width: 800px;
-        height: 600px;
+        width: 420px;
+        height: 520px;
         margin: 0;
         padding: 0;
         overflow: hidden;
       }
 
       body {
-        padding: 14px;
+        padding: 12px;
         font-family: "Trebuchet MS", "Gill Sans", "Calibri", sans-serif;
         color: var(--text);
-        background: radial-gradient(
-            ellipse at 30% 0%,
-            rgba(24, 124, 107, 0.08),
-            transparent 50%
-          ),
-          radial-gradient(
-            circle at 80% 20%,
-            rgba(248, 226, 189, 0.6),
-            transparent 40%
-          ),
-          radial-gradient(circle at top, var(--bg-accent), transparent 58%),
-          linear-gradient(160deg, #f7f1e6, var(--bg));
+        background: linear-gradient(165deg, var(--bg-dark) 0%, var(--bg-darkest) 100%);
         display: flex;
         flex-direction: column;
         box-sizing: border-box;
@@ -67,13 +55,13 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         flex-shrink: 0;
       }
 
       h1 {
         margin: 0;
-        font-size: 15px;
+        font-size: 14px;
         letter-spacing: 0.3px;
         background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
         -webkit-background-clip: text;
@@ -85,36 +73,22 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 28px;
-        padding: 4px 8px;
+        min-width: 24px;
+        padding: 3px 8px;
         border-radius: 999px;
-        background: linear-gradient(
-          135deg,
-          var(--accent-soft),
-          rgba(24, 124, 107, 0.25)
-        );
+        background: linear-gradient(135deg, var(--accent-soft), rgba(168, 85, 247, 0.25));
         color: var(--accent);
         font-weight: 700;
-        font-size: 12px;
-        border: 1px solid rgba(24, 124, 107, 0.2);
-        box-shadow: 0 2px 8px rgba(24, 124, 107, 0.15);
-        cursor: default;
-        transition: transform 150ms ease, box-shadow 150ms ease;
-      }
-
-      .badge:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(24, 124, 107, 0.25);
+        font-size: 11px;
+        border: 1px solid rgba(168, 85, 247, 0.2);
       }
 
       .card {
-        background: var(--surface);
+        background: linear-gradient(145deg, var(--bg-card), var(--bg-medium));
         border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 14px;
+        border-radius: 12px;
+        padding: 10px 12px;
         box-shadow: var(--shadow);
-        backdrop-filter: blur(12px) saturate(150%);
-        -webkit-backdrop-filter: blur(12px) saturate(150%);
         flex-shrink: 0;
         position: relative;
         overflow: hidden;
@@ -124,38 +98,34 @@
         content: "";
         position: absolute;
         top: 0;
-        left: 0;
-        right: 0;
+        left: 10%;
+        right: 10%;
         height: 1px;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.8),
-          transparent
-        );
+        background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.3), transparent);
         pointer-events: none;
       }
 
       .card + .card {
-        margin-top: 10px;
+        margin-top: 8px;
       }
 
       label {
         display: block;
-        font-size: 12px;
+        font-size: 11px;
         color: var(--muted);
-        margin-bottom: 6px;
+        margin-bottom: 4px;
       }
 
       input[type="number"],
       input[type="password"],
       input[type="text"].password-input {
         width: 100%;
-        padding: 8px 10px;
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        background: #fff;
-        font-size: 14px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-darkest);
+        color: var(--text);
+        font-size: 13px;
         transition: border 140ms ease, box-shadow 140ms ease;
       }
 
@@ -164,14 +134,14 @@
       input[type="text"].password-input:focus {
         outline: none;
         border-color: var(--accent);
-        box-shadow: 0 0 0 2px rgba(24, 124, 107, 0.2);
+        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
       }
 
       input[type="number"].invalid,
       input[type="password"].invalid,
       input[type="text"].password-input.invalid {
         border-color: var(--error);
-        box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.2);
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
       }
 
       .password-wrapper {
@@ -181,12 +151,12 @@
       }
 
       .password-wrapper input {
-        padding-right: 36px;
+        padding-right: 32px;
       }
 
       .password-toggle {
         position: absolute;
-        right: 8px;
+        right: 6px;
         background: none;
         border: none;
         cursor: pointer;
@@ -202,14 +172,14 @@
       }
 
       .password-toggle svg {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
       }
 
       .password-saved {
-        font-size: 11px;
+        font-size: 10px;
         color: var(--accent);
-        margin-left: 8px;
+        margin-left: 6px;
         opacity: 0;
         transition: opacity 200ms ease;
       }
@@ -219,8 +189,8 @@
       }
 
       .server {
-        margin-top: 10px;
-        font-size: 12px;
+        margin-top: 6px;
+        font-size: 11px;
         color: var(--muted);
         display: flex;
         justify-content: space-between;
@@ -229,29 +199,30 @@
 
       .server-url {
         font-weight: 600;
-        color: var(--text);
+        color: var(--text-secondary);
         text-align: right;
       }
 
       .status {
-        margin-top: 8px;
-        font-size: 12px;
+        margin-top: 4px;
+        font-size: 11px;
         color: var(--muted);
-        min-height: 18px;
+        min-height: 14px;
       }
 
       .status.error {
         color: var(--error);
       }
 
+      /* Toggle switch styles */
       .toggle-row {
-        margin-top: 10px;
+        margin-top: 8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
-        font-size: 12px;
-        color: var(--muted);
+        gap: 8px;
+        font-size: 11px;
+        color: var(--text-secondary);
       }
 
       .toggle-label {
@@ -259,12 +230,49 @@
         align-items: center;
         gap: 8px;
         font-weight: 600;
+        cursor: pointer;
       }
 
       .toggle-label input {
-        width: 16px;
-        height: 16px;
-        accent-color: var(--accent);
+        display: none;
+      }
+
+      .toggle-switch {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        background: var(--bg-darkest);
+        border: 1px solid var(--border-subtle);
+        border-radius: 999px;
+        transition: all 200ms ease;
+        flex-shrink: 0;
+      }
+
+      .toggle-switch::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        background: var(--muted);
+        border-radius: 50%;
+        transition: all 200ms ease;
+      }
+
+      .toggle-label input:checked + .toggle-switch {
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+
+      .toggle-label input:checked + .toggle-switch::after {
+        left: 18px;
+        background: white;
+      }
+
+      .toggle-hint {
+        font-size: 10px;
+        color: var(--muted);
       }
 
       .messages-card {
@@ -279,234 +287,200 @@
       .messages {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
         flex: 1;
         overflow-y: auto;
         padding-right: 4px;
         min-height: 0;
       }
 
+      .messages::-webkit-scrollbar {
+        width: 4px;
+      }
+
+      .messages::-webkit-scrollbar-track {
+        background: var(--bg-darkest);
+        border-radius: 2px;
+      }
+
+      .messages::-webkit-scrollbar-thumb {
+        background: var(--muted);
+        border-radius: 2px;
+      }
+
+      .messages::-webkit-scrollbar-thumb:hover {
+        background: var(--accent);
+      }
+
       .message {
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        padding: 8px 10px;
-        background: #fff;
+        border-radius: 10px;
+        border: 1px solid var(--border-subtle);
+        padding: 6px 8px;
+        background: var(--bg-dark);
         animation: rise 160ms ease;
       }
 
+      .message:hover {
+        border-color: var(--border);
+      }
+
       .message-time {
-        font-size: 11px;
+        font-size: 10px;
         color: var(--muted);
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
 
       .message-text {
-        font-size: 13px;
+        font-size: 11px;
         white-space: pre-wrap;
         word-break: break-word;
+        color: var(--text);
       }
 
       .message-status {
-        font-size: 11px;
+        font-size: 10px;
         color: var(--muted);
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
 
       .attachments {
         display: flex;
         flex-wrap: wrap;
-        gap: 6px;
-        margin-top: 6px;
+        gap: 4px;
+        margin-top: 4px;
       }
 
       .attachment {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 4px 6px;
-        border-radius: 8px;
-        border: 1px solid var(--border);
-        background: #fff;
+        gap: 4px;
+        padding: 3px 6px;
+        border-radius: 6px;
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-medium);
       }
 
       .attachment-thumb {
-        width: 44px;
-        height: 44px;
+        width: 32px;
+        height: 32px;
         object-fit: cover;
-        border-radius: 6px;
-        border: 1px solid var(--border);
+        border-radius: 4px;
+        border: 1px solid var(--border-subtle);
       }
 
       .attachment-icon {
-        font-size: 9px;
+        font-size: 8px;
         font-weight: 700;
         color: var(--accent);
         background: var(--accent-soft);
         border-radius: 999px;
-        padding: 2px 6px;
+        padding: 2px 5px;
       }
 
       .attachment-label {
-        font-size: 11px;
-        color: var(--muted);
-        max-width: 200px;
+        font-size: 10px;
+        color: var(--text-secondary);
+        max-width: 120px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
       .attachment-more {
-        font-size: 11px;
+        font-size: 10px;
         color: var(--muted);
         align-self: center;
       }
 
       .message-actions {
-        margin-top: 6px;
+        margin-top: 4px;
         display: flex;
         justify-content: flex-end;
       }
 
       .retry-btn {
-        background: #fff;
+        background: var(--bg-medium);
         color: var(--error);
-        border: 1px solid rgba(180, 35, 24, 0.35);
-        padding: 4px 10px;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        padding: 3px 8px;
         border-radius: 999px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
         cursor: pointer;
-        transition: opacity 140ms ease, transform 140ms ease;
+        transition: all 140ms ease;
       }
 
       .retry-btn:hover {
-        opacity: 0.9;
-      }
-
-      .retry-btn:active {
-        transform: scale(0.96);
+        background: var(--error-soft);
+        border-color: rgba(239, 68, 68, 0.5);
       }
 
       .empty {
         text-align: center;
-        font-size: 12px;
+        font-size: 11px;
         color: var(--muted);
-        padding: 8px;
+        padding: 12px 8px;
       }
 
       .keepalive-indicator {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #999, #bbb);
-        transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-      }
-
-      .keepalive-indicator::after {
-        content: "";
-        position: absolute;
-        inset: -3px;
-        border-radius: 50%;
-        background: transparent;
+        background: linear-gradient(135deg, #57534e, #78716c);
         transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .keepalive-indicator.active {
-        background: linear-gradient(135deg, #2ecc71, #27ae60);
-        box-shadow: 0 0 12px rgba(46, 204, 113, 0.7),
-          0 0 4px rgba(46, 204, 113, 0.9);
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        box-shadow: 0 0 8px rgba(34, 197, 94, 0.6), 0 0 3px rgba(34, 197, 94, 0.8);
         animation: pulse-glow 2s infinite;
       }
 
       @keyframes pulse-glow {
-        0%,
-        100% {
-          box-shadow: 0 0 12px rgba(46, 204, 113, 0.7),
-            0 0 4px rgba(46, 204, 113, 0.9);
+        0%, 100% {
+          box-shadow: 0 0 8px rgba(34, 197, 94, 0.6), 0 0 3px rgba(34, 197, 94, 0.8);
         }
         50% {
-          box-shadow: 0 0 18px rgba(46, 204, 113, 0.9),
-            0 0 6px rgba(46, 204, 113, 1);
+          box-shadow: 0 0 12px rgba(34, 197, 94, 0.8), 0 0 5px rgba(34, 197, 94, 1);
         }
       }
 
-      /* Connection status banner */
+      /* Status banner */
       .status-banner {
         display: flex;
         align-items: center;
-        gap: 10px;
-        padding: 12px 14px;
-        border-radius: 14px;
-        margin-bottom: 12px;
-        font-size: 12px;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        font-size: 11px;
         font-weight: 600;
-        transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 300ms ease;
         flex-shrink: 0;
-        position: relative;
-        overflow: hidden;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-      }
-
-      .status-banner::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.5),
-          transparent
-        );
-        pointer-events: none;
       }
 
       .status-banner.disconnected {
-        background: linear-gradient(
-          135deg,
-          rgba(180, 35, 24, 0.12),
-          rgba(180, 35, 24, 0.08)
-        );
-        border: 1px solid rgba(180, 35, 24, 0.25);
+        background: var(--error-soft);
+        border: 1px solid rgba(239, 68, 68, 0.25);
         color: var(--error);
-        box-shadow: 0 4px 20px rgba(180, 35, 24, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.1);
       }
 
       .status-banner.connected-unbound {
-        background: linear-gradient(
-          135deg,
-          rgba(180, 83, 9, 0.12),
-          rgba(254, 243, 199, 0.6)
-        );
-        border: 1px solid rgba(180, 83, 9, 0.25);
+        background: var(--warning-soft);
+        border: 1px solid rgba(245, 158, 11, 0.25);
         color: var(--warning);
-        box-shadow: 0 4px 20px rgba(180, 83, 9, 0.1),
-          inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
 
       .status-banner.ready {
-        background: linear-gradient(
-          135deg,
-          rgba(5, 150, 105, 0.15),
-          rgba(209, 250, 229, 0.5)
-        );
-        border: 1px solid rgba(5, 150, 105, 0.25);
+        background: var(--success-soft);
+        border: 1px solid rgba(34, 197, 94, 0.25);
         color: var(--success);
-        box-shadow: 0 4px 20px var(--success-glow),
-          inset 0 1px 0 rgba(255, 255, 255, 0.3);
       }
 
       .status-banner-icon {
-        width: 20px;
-        height: 20px;
+        width: 16px;
+        height: 16px;
         flex-shrink: 0;
-        filter: drop-shadow(0 1px 2px currentColor);
-        opacity: 0.9;
       }
 
       .status-banner-text {
@@ -514,34 +488,19 @@
       }
 
       .status-banner-hint {
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 400;
         opacity: 0.8;
-        margin-top: 3px;
-      }
-
-      /* Help text styles */
-      .help-text {
-        font-size: 11px;
-        color: var(--muted);
-        line-height: 1.4;
-        padding: 8px 10px;
-        background: rgba(0, 0, 0, 0.03);
-        border-radius: 8px;
-        margin-top: 8px;
-      }
-
-      .help-text strong {
-        color: var(--text);
+        margin-top: 2px;
       }
 
       .btn-primary {
         background: var(--accent);
         color: #fff;
         border: none;
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
         font-weight: 600;
         cursor: pointer;
         transition: opacity 140ms ease, transform 140ms ease;
@@ -556,87 +515,77 @@
       }
 
       .btn-secondary {
-        background: #fff;
+        background: var(--bg-medium);
         color: var(--accent);
         border: 1px solid var(--border);
-        padding: 6px 12px;
-        border-radius: 8px;
-        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
         font-weight: 600;
         cursor: pointer;
-        transition: opacity 140ms ease, transform 140ms ease;
+        transition: opacity 140ms ease;
       }
 
       .btn-secondary:hover {
         opacity: 0.9;
       }
 
-      .btn-secondary:active {
-        transform: scale(0.96);
-      }
-
       .btn-secondary:disabled {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
-        transform: none;
       }
 
       .btn-danger {
-        background: #fff;
+        background: var(--bg-medium);
         color: var(--error);
-        border: 1px solid rgba(180, 35, 24, 0.35);
-        padding: 4px 10px;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        padding: 3px 8px;
         border-radius: 999px;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
         cursor: pointer;
-        transition: opacity 140ms ease, transform 140ms ease;
+        transition: all 140ms ease;
       }
 
       .btn-danger:hover {
-        opacity: 0.9;
-      }
-
-      .btn-danger:active {
-        transform: scale(0.96);
+        background: var(--error-soft);
       }
 
       .btn-danger:disabled {
-        opacity: 0.5;
+        opacity: 0.4;
         cursor: not-allowed;
-        transform: none;
       }
 
       .port-actions {
-        margin-top: 12px;
+        margin-top: 8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 8px;
+      }
+
+      .tab-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
 
       .messages-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 8px;
-        font-size: 12px;
-        color: var(--muted);
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 11px;
+        color: var(--text-secondary);
         font-weight: 600;
       }
 
-      .tab-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
       .bound-tabs-list {
-        margin-top: 8px;
+        margin-top: 6px;
         display: grid;
-        gap: 4px;
-        max-height: 100px;
+        gap: 3px;
+        max-height: 60px;
         overflow-y: auto;
       }
 
@@ -644,11 +593,11 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 4px 8px;
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        font-size: 11px;
+        padding: 3px 6px;
+        background: var(--bg-dark);
+        border: 1px solid var(--border-subtle);
+        border-radius: 6px;
+        font-size: 10px;
       }
 
       .bound-tab-label {
@@ -656,17 +605,17 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
-        color: var(--text);
+        color: var(--text-secondary);
       }
 
       .btn-unbind-single {
         background: none;
         border: none;
         color: var(--error);
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 700;
         cursor: pointer;
-        padding: 0 4px;
+        padding: 0 3px;
         opacity: 0.6;
         transition: opacity 140ms ease;
       }
@@ -675,10 +624,20 @@
         opacity: 1;
       }
 
+      .row-compact {
+        display: flex;
+        gap: 8px;
+        margin-top: 6px;
+      }
+
+      .row-compact > div {
+        flex: 1;
+      }
+
       @keyframes rise {
         from {
           opacity: 0;
-          transform: translateY(4px);
+          transform: translateY(3px);
         }
         to {
           opacity: 1;
@@ -689,170 +648,90 @@
   </head>
   <body>
     <header>
-      <div style="display: flex; align-items: center; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 8px">
         <h1>AivoRelay</h1>
-        <div
-          id="keepalive-indicator"
-          class="keepalive-indicator"
-          title="Keepalive Status"
-        ></div>
+        <div id="keepalive-indicator" class="keepalive-indicator" title="Keepalive Status"></div>
       </div>
-      <span class="badge" id="message-count" title="Recent messages count"
-        >0</span
-      >
+      <span class="badge" id="message-count" title="Recent messages count">0</span>
     </header>
 
     <!-- Status Banner -->
     <div id="status-banner" class="status-banner disconnected">
-      <svg
-        class="status-banner-icon"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
+      <svg class="status-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
         <line x1="12" y1="8" x2="12" y2="12"></line>
         <line x1="12" y1="16" x2="12.01" y2="16"></line>
       </svg>
       <div class="status-banner-text">
         <div id="status-banner-title">Disconnected</div>
-        <div id="status-banner-hint" class="status-banner-hint">
-          Waiting for connection to AivoRelay app...
-        </div>
+        <div id="status-banner-hint" class="status-banner-hint">Waiting for connection...</div>
       </div>
     </div>
 
     <section class="card">
-      <label for="port">Port</label>
-      <input
-        id="port"
-        type="number"
-        min="1"
-        max="65535"
-        step="1"
-        inputmode="numeric"
-      />
+      <div class="row-compact">
+        <div>
+          <label for="port">Port</label>
+          <input id="port" type="number" min="1" max="65535" step="1" inputmode="numeric" />
+        </div>
+        <div>
+          <label for="password">Password <span id="password-saved" class="password-saved">Saved</span></label>
+          <div class="password-wrapper">
+            <input id="password" type="password" class="password-input" autocomplete="off" />
+            <button type="button" id="password-toggle" class="password-toggle" title="Show/hide">
+              <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg id="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="server">
         <span>Server</span>
         <span class="server-url" id="server-url"></span>
       </div>
       <div class="status" id="status"></div>
 
-      <div style="margin-top: 10px">
-        <label for="password"
-          >Connection Password
-          <span id="password-saved" class="password-saved">Saved</span></label
-        >
-        <div class="password-wrapper">
-          <input
-            id="password"
-            type="password"
-            class="password-input"
-            autocomplete="off"
-          />
-          <button
-            type="button"
-            id="password-toggle"
-            class="password-toggle"
-            title="Show/hide password"
-          >
-            <svg
-              id="eye-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-            <svg
-              id="eye-off-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              style="display: none"
-            >
-              <path
-                d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
-              ></path>
-              <line x1="1" y1="1" x2="23" y2="23"></line>
-            </svg>
-          </button>
-        </div>
-      </div>
-
       <div class="toggle-row">
         <label class="toggle-label" for="auto-send">
           <input id="auto-send" type="checkbox" />
+          <span class="toggle-switch"></span>
           Auto-send
         </label>
-        <span style="font-size: 11px">On by default</span>
+        <span class="toggle-hint">Default for all tabs</span>
       </div>
 
       <div class="toggle-row">
         <label class="toggle-label" for="single-tab-mode">
           <input id="single-tab-mode" type="checkbox" checked />
+          <span class="toggle-switch"></span>
           Single tab mode
         </label>
-        <span style="font-size: 11px">Auto-unbind others when binding new</span>
+        <span class="toggle-hint">Auto-unbind others</span>
       </div>
 
       <div class="port-actions">
         <div class="tab-actions">
-          <button id="bind-tab" class="btn-primary">Bind to Tab</button>
-          <button
-            id="unbind-tab"
-            class="btn-secondary"
-            disabled
-            style="display: none"
-          >
-            Unbind
-          </button>
-          <button id="unbind-all" class="btn-secondary" disabled>
-            Unbind All
-          </button>
+          <button id="bind-tab" class="btn-primary">Bind Tab</button>
+          <button id="unbind-tab" class="btn-secondary" disabled style="display: none">Unbind</button>
+          <button id="unbind-all" class="btn-secondary" disabled>Unbind All</button>
         </div>
-        <span
-          id="bound-status"
-          style="
-            font-size: 11px;
-            color: var(--muted);
-            flex: 1;
-            text-align: right;
-          "
-          >No tabs bound</span
-        >
+        <span id="bound-status" style="font-size: 10px; color: var(--muted); flex: 1; text-align: right;">No tabs bound</span>
       </div>
 
-      <div
-        id="bound-tabs-list"
-        class="bound-tabs-list"
-        style="display: none"
-      ></div>
-
-      <div class="help-text">
-        <strong>Tab Binding:</strong> Navigate to your AI chat website, then
-        click "Bind to Tab". Messages from AivoRelay will be typed into bound
-        tabs automatically. In single tab mode, binding a new tab unbinds
-        others. Turn off single tab mode to bind multiple tabs simultaneously.
-      </div>
+      <div id="bound-tabs-list" class="bound-tabs-list" style="display: none"></div>
     </section>
 
     <section class="card messages-card">
       <div class="messages-header">
         <span>Messages</span>
-        <button id="clear-messages" class="btn-danger" type="button">
-          Clear
-        </button>
+        <button id="clear-messages" class="btn-danger" type="button">Clear</button>
       </div>
       <div class="messages" id="messages"></div>
     </section>

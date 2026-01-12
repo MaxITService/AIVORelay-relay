@@ -410,18 +410,48 @@ function buildFloatingUi() {
   root.dataset.connected = "false";
   root.dataset.autosend = "default";
 
+  // SVG circular text for "SEND" label (around auto-send button)
+  const sendCircularText = `
+    <svg class="hc-circular-text" viewBox="0 0 36 36">
+      <defs>
+        <path id="send-circle" d="M 18,18 m -14,0 a 14,14 0 1,1 28,0 a 14,14 0 1,1 -28,0"/>
+      </defs>
+      <text>
+        <textPath href="#send-circle" startOffset="0%">SEND SEND SEND SEND </textPath>
+      </text>
+    </svg>
+  `;
+
+  // SVG circular text for "BIND" label (around bind button)
+  const bindCircularText = `
+    <svg class="hc-circular-text" viewBox="0 0 36 36">
+      <defs>
+        <path id="bind-circle" d="M 18,18 m -14,0 a 14,14 0 1,1 28,0 a 14,14 0 1,1 -28,0"/>
+      </defs>
+      <text>
+        <textPath href="#bind-circle" startOffset="0%">BIND BIND BIND BIND </textPath>
+      </text>
+    </svg>
+  `;
+
   root.innerHTML = `
     <div class="hc-min hc-drag-handle">
       <button class="hc-toggle" type="button" aria-expanded="false" title="Open panel">A</button>
       <div class="hc-status-dots">
         <span class="hc-server-dot" title="Server: Checking..."></span>
       </div>
-      <button class="hc-autosend-toggle" type="button" aria-pressed="true" title="Toggle auto-send for this tab">
-        <span class="hc-autosend-dot" title="Auto-send: On (using default)"></span>
-      </button>
-      <button class="hc-bind-toggle" type="button" aria-pressed="false" title="Toggle bind for this tab">
-        <span class="hc-dot" title="Page binding status"></span>
-      </button>
+      <div class="hc-circular-btn hc-autosend-circular">
+        ${sendCircularText}
+        <button class="hc-autosend-toggle" type="button" aria-pressed="true" title="Toggle auto-send for this tab">
+          <span class="hc-autosend-dot" title="Auto-send: On (using default)"></span>
+        </button>
+      </div>
+      <div class="hc-circular-btn hc-bind-circular">
+        ${bindCircularText}
+        <button class="hc-bind-toggle" type="button" aria-pressed="false" title="Toggle bind for this tab">
+          <span class="hc-dot" title="Page binding status"></span>
+        </button>
+      </div>
     </div>
     <div class="hc-panel" role="dialog" aria-label="AivoRelay panel">
       <div class="hc-panel-header hc-drag-handle">
@@ -432,14 +462,22 @@ function buildFloatingUi() {
         <button class="hc-collapse" type="button" title="Collapse">Close</button>
       </div>
       <div class="hc-section">
-        <label class="hc-checkbox">
-          <input id="hc-auto-send" type="checkbox" />
-          Auto-send messages
-        </label>
-        <label class="hc-checkbox">
-          <input id="hc-single-tab-mode" type="checkbox" />
-          Single tab mode
-        </label>
+        <div class="hc-toggle-row">
+          <label class="hc-toggle-switch" for="hc-auto-send">
+            <input id="hc-auto-send" type="checkbox" />
+            <span class="hc-switch"></span>
+            <span class="hc-toggle-text">Auto-send messages</span>
+          </label>
+          <span class="hc-toggle-hint">Default for all tabs</span>
+        </div>
+        <div class="hc-toggle-row">
+          <label class="hc-toggle-switch" for="hc-single-tab-mode">
+            <input id="hc-single-tab-mode" type="checkbox" />
+            <span class="hc-switch"></span>
+            <span class="hc-toggle-text">Single tab mode</span>
+          </label>
+          <span class="hc-toggle-hint">Auto-unbind others</span>
+        </div>
       </div>
       <div class="hc-section">
         <div class="hc-messages-header">
