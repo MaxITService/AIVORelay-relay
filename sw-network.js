@@ -1,5 +1,20 @@
 'use strict';
 
+let connectorSessionRequestChain = Promise.resolve();
+
+function runSerializedConnectorSessionRequest(work) {
+  const next = connectorSessionRequestChain.catch(() => {}).then(work);
+  connectorSessionRequestChain = next.catch(() => {});
+  return next;
+}
+
+function runConnectorRequestTransaction(useSession, work) {
+  if (!useSession) {
+    return work();
+  }
+  return runSerializedConnectorSessionRequest(work);
+}
+
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
@@ -288,7 +303,8 @@ async function createConnectorSession(settings, timeoutMs) {
       signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
-        [CONNECTOR_SESSION_HEADER_NAMES.protocolVersion]: String(CONNECTOR_PROTOCOL_VERSION)
+        [CONNECTOR_SESSION_HEADER_NAMES.protocolVersion]: String(CONNECTOR_PROTOCOL_VERSION),
+        [CONNECTOR_SESSION_HEADER_NAMES.extensionId]: chrome.runtime.id
       },
       body: JSON.stringify({
         clientPublicKey,
@@ -432,12 +448,28 @@ async function validateConnectorResponseSession(result, rawBytes) {
   const encrypted = response.headers.get(CONNECTOR_SESSION_HEADER_NAMES.payloadEncrypted) === "1";
 
   if (responseSessionId !== session.id) {
+    console.warn("[aivo-relay] Connector response session mismatch", {
+      routeLabel,
+      expectedSessionId: session.id,
+      receivedSessionId: responseSessionId || null
+    });
     throw new Error("Connector response session id mismatch");
   }
   if (responseSequence !== Number(session.nextServerSequence)) {
+    console.warn("[aivo-relay] Connector response sequence mismatch", {
+      routeLabel,
+      expectedSequence: Number(session.nextServerSequence),
+      receivedSequence: responseSequence,
+      sessionId: session.id
+    });
     throw new Error("Connector response sequence mismatch");
   }
   if (!responseMac) {
+    console.warn("[aivo-relay] Connector response missing mac", {
+      routeLabel,
+      sessionId: session.id,
+      responseSequence
+    });
     throw new Error("Connector response is missing response mac");
   }
 
@@ -452,6 +484,12 @@ async function validateConnectorResponseSession(result, rawBytes) {
   );
   const expectedMac = await computeHmacBytes(macKeyBytes, expectedPayload);
   if (!constantTimeEqualBytes(base64ToBytes(responseMac), expectedMac)) {
+    console.warn("[aivo-relay] Connector response authentication failed", {
+      routeLabel,
+      sessionId: session.id,
+      responseSequence,
+      status: response.status
+    });
     throw new Error("Connector response authentication failed");
   }
 
@@ -466,23 +504,23 @@ async function validateConnectorResponseSession(result, rawBytes) {
 }
 
 async function connectorFetch(url, timeoutMs, options = {}) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const settings = options.settings || await getSettings();
-  const useSession = options.useSession !== false;
   const {
     settings: _settings,
     refreshSession,
-    useSession: _useSession,
+    useSession,
     headers: optionHeaders,
     body,
     ...requestInit
   } = options;
+  const shouldUseSession = useSession !== false;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   let session = null;
 
   try {
     const headers = { ...(optionHeaders || {}) };
-    if (useSession) {
+    if (shouldUseSession) {
       session = await getUsableConnectorSession(settings, timeoutMs, {
         refreshSession: refreshSession === true
       });
@@ -493,6 +531,7 @@ async function connectorFetch(url, timeoutMs, options = {}) {
       const requestMacPayload = await buildRequestMacPayload(routeLabel, sequence, timestamp, bodyBytes);
       const requestMac = await computeHmacBytes(base64ToBytes(session.macKey), requestMacPayload);
       headers[CONNECTOR_SESSION_HEADER_NAMES.protocolVersion] = String(CONNECTOR_PROTOCOL_VERSION);
+      headers[CONNECTOR_SESSION_HEADER_NAMES.extensionId] = chrome.runtime.id;
       headers[CONNECTOR_SESSION_HEADER_NAMES.sessionId] = session.id;
       headers[CONNECTOR_SESSION_HEADER_NAMES.sequence] = String(sequence);
       headers[CONNECTOR_SESSION_HEADER_NAMES.timestamp] = String(timestamp);
@@ -507,7 +546,13 @@ async function connectorFetch(url, timeoutMs, options = {}) {
       body
     });
 
-    if (!response.ok && useSession) {
+    if (!response.ok && shouldUseSession) {
+      console.warn("[aivo-relay] Connector request failed", {
+        routeLabel: getRouteLabel(url),
+        status: response.status,
+        sessionId: session?.id || null,
+        sequence: session ? Number(session.nextClientSequence) : null
+      });
       await clearConnectorSession();
     }
 
@@ -517,7 +562,7 @@ async function connectorFetch(url, timeoutMs, options = {}) {
       routeLabel: getRouteLabel(url)
     };
   } catch (err) {
-    if (useSession) {
+    if (shouldUseSession) {
       await clearConnectorSession();
     }
     throw err;
@@ -562,29 +607,68 @@ async function fetchWithTimeout(url, timeoutMs, options = {}) {
   return connectorFetch(url, timeoutMs, options);
 }
 
+async function fetchTextWithTimeout(url, timeoutMs, options = {}) {
+  const shouldUseSession = options.useSession !== false;
+  return runConnectorRequestTransaction(shouldUseSession, async () => {
+    const fetchResult = await connectorFetch(url, timeoutMs, options);
+    let bodyText = "";
+    if (fetchResult.response.ok) {
+      bodyText = await readConnectorResponseText(fetchResult);
+    } else {
+      bodyText = await fetchResult.response.text();
+    }
+
+    return {
+      response: fetchResult.response,
+      bodyText
+    };
+  });
+}
+
+async function fetchBytesWithTimeout(url, timeoutMs, options = {}) {
+  const shouldUseSession = options.useSession !== false;
+  return runConnectorRequestTransaction(shouldUseSession, async () => {
+    const fetchResult = await connectorFetch(url, timeoutMs, options);
+    let data;
+    if (fetchResult.response.ok) {
+      data = await readConnectorResponseBytes(fetchResult);
+    } else {
+      data = new Uint8Array(await fetchResult.response.arrayBuffer());
+    }
+
+    return {
+      response: fetchResult.response,
+      data
+    };
+  });
+}
+
 async function postJsonWithTimeout(url, payload, timeoutMs, options = {}) {
   const body = JSON.stringify(payload);
-  const fetchResult = await connectorFetch(url, timeoutMs, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-    body,
-    settings: options.settings,
-    refreshSession: options.refreshSession === true,
-    useSession: options.useSession !== false
+  const shouldUseSession = options.useSession !== false;
+  return runConnectorRequestTransaction(shouldUseSession, async () => {
+    const fetchResult = await connectorFetch(url, timeoutMs, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      body,
+      settings: options.settings,
+      refreshSession: options.refreshSession === true,
+      useSession: shouldUseSession
+    });
+
+    let bodyText = "";
+    if (fetchResult.response.ok) {
+      bodyText = await readConnectorResponseText(fetchResult);
+    } else {
+      bodyText = await fetchResult.response.text();
+    }
+
+    return {
+      ok: fetchResult.response.ok,
+      status: fetchResult.response.status,
+      bodyText
+    };
   });
-
-  let bodyText = "";
-  if (fetchResult.response.ok) {
-    bodyText = await readConnectorResponseText(fetchResult);
-  } else {
-    bodyText = await fetchResult.response.text();
-  }
-
-  return {
-    ok: fetchResult.response.ok,
-    status: fetchResult.response.status,
-    bodyText
-  };
 }
 
 /**

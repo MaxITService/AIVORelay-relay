@@ -126,7 +126,7 @@ async function downloadAttachment(messageId, attachment, attemptCount, settings)
   const headers = normalizeHeaders(attachment.fetch.headers);
 
   try {
-    const fetchResult = await fetchWithTimeout(attachment.fetch.url, settings.timeoutMs, {
+    const fetchResult = await fetchBytesWithTimeout(attachment.fetch.url, settings.timeoutMs, {
       method,
       headers
     });
@@ -135,6 +135,15 @@ async function downloadAttachment(messageId, attachment, attemptCount, settings)
     if (!response.ok) {
       const code = `HTTP_${response.status}`;
       const retryable = isRetryableStatus(response.status);
+      const responseDetail = new TextDecoder().decode(fetchResult.data || new Uint8Array(0)).trim();
+      console.warn("[aivo-relay] Attachment download failed", {
+        messageId,
+        attId: attachment.attId,
+        status: response.status,
+        retryable,
+        url: attachment.fetch.url,
+        detail: responseDetail || null
+      });
       return {
         ok: false,
         didAttempt: true,
@@ -151,7 +160,7 @@ async function downloadAttachment(messageId, attachment, attemptCount, settings)
       });
     }
 
-    const data = await readConnectorResponseBytes(fetchResult);
+    const data = fetchResult.data;
     const sha256 = await computeSha256(data);
     await cacheAttachment(messageId, attachment, data, sha256);
     return { ok: true, didAttempt: true, data, sha256 };

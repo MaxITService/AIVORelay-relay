@@ -99,7 +99,7 @@ async function pollOnceWithWait(waitSeconds = 0) {
     let dedupeSet = new Set(Array.isArray(stored.recentMessageIds) ? stored.recentMessageIds : []);
 
     // Build URL with wait parameter for long-polling
-    const fetchResult = await fetchWithTimeout(
+    const fetchResult = await fetchTextWithTimeout(
       buildRequestUrl(settings, stored.cursor, waitSeconds),
       timeoutMs
     );
@@ -112,7 +112,7 @@ async function pollOnceWithWait(waitSeconds = 0) {
         chrome.action.setTitle({ title: "AivoRelay: Authentication failed\nCheck that your password matches the AivoRelay app." });
         throw new Error("Authentication failed. Check that your password matches the AivoRelay app.");
       }
-      const bodyText = await response.text();
+      const bodyText = fetchResult.bodyText;
       throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
     }
 
@@ -120,7 +120,7 @@ async function pollOnceWithWait(waitSeconds = 0) {
     chrome.action.setBadgeText({ text: "" });
     chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
-    const bodyText = await readConnectorResponseText(fetchResult);
+    const bodyText = fetchResult.bodyText;
     const parsed = parseMaybeJson(bodyText);
     const parsedResponse = parseMessageResponse(parsed, bodyText);
     const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);
@@ -252,7 +252,7 @@ async function pollOnce() {
     let pendingBundles = normalizePendingBundles(stored.pendingBundles);
     let dedupeSet = new Set(Array.isArray(stored.recentMessageIds) ? stored.recentMessageIds : []);
 
-    const fetchResult = await fetchWithTimeout(buildRequestUrl(settings, stored.cursor), timeoutMs);
+    const fetchResult = await fetchTextWithTimeout(buildRequestUrl(settings, stored.cursor), timeoutMs);
     const response = fetchResult.response;
 
     if (!response.ok) {
@@ -263,7 +263,7 @@ async function pollOnce() {
         chrome.action.setTitle({ title: "AivoRelay: Authentication failed\nCheck that your password matches the AivoRelay app." });
         throw new Error("Authentication failed. Check that your password matches the AivoRelay app.");
       }
-      const bodyText = await response.text();
+      const bodyText = fetchResult.bodyText;
       throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
     }
 
@@ -271,7 +271,7 @@ async function pollOnce() {
     chrome.action.setBadgeText({ text: "" });
     chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
-    const bodyText = await readConnectorResponseText(fetchResult);
+    const bodyText = fetchResult.bodyText;
     const parsed = parseMaybeJson(bodyText);
     const parsedResponse = parseMessageResponse(parsed, bodyText);
     const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);

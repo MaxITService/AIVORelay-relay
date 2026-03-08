@@ -22,6 +22,7 @@ const CONNECTOR_SESSION_HEADER_NAMES = {
   sessionId: "x-aivorelay-session-id",
   sequence: "x-aivorelay-sequence",
   timestamp: "x-aivorelay-timestamp",
+  extensionId: "x-aivorelay-extension-id",
   serverSequence: "x-aivorelay-server-sequence",
   sessionExpiresAt: "x-aivorelay-session-expires-at",
   requestMac: "x-aivorelay-request-mac",
