@@ -32,6 +32,7 @@ const statusBannerEl = document.getElementById("status-banner");
 const statusBannerTitleEl = document.getElementById("status-banner-title");
 const statusBannerHintEl = document.getElementById("status-banner-hint");
 const statusBannerIconEl = statusBannerEl?.querySelector(".status-banner-icon");
+const extensionVersionEl = document.getElementById("extension-version");
 
 let currentSettings = { ...DEFAULT_SETTINGS };
 let currentBoundTabIds = [];
@@ -44,6 +45,7 @@ const attachmentPreviewCache = new Map();
 init();
 
 async function init() {
+  renderExtensionVersion();
   await loadState();
   await loadPassword();
   chrome.storage.onChanged.addListener(handleStorageChange);
@@ -72,6 +74,17 @@ async function init() {
   refreshInterval = setInterval(updateTimedUI, 1000);
 
   void requestConnect();
+}
+
+function renderExtensionVersion() {
+  if (!extensionVersionEl) return;
+
+  try {
+    const version = chrome?.runtime?.getManifest?.()?.version;
+    extensionVersionEl.textContent = version ? `v${version}` : "";
+  } catch {
+    extensionVersionEl.textContent = "";
+  }
 }
 
 async function loadPassword() {

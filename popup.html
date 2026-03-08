@@ -69,6 +69,18 @@
         background-clip: text;
       }
 
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .version-label {
+        font-size: 10px;
+        color: var(--muted);
+        letter-spacing: 0.2px;
+      }
+
       .badge {
         display: inline-flex;
         align-items: center;
@@ -652,7 +664,10 @@
         <h1>AivoRelay</h1>
         <div id="keepalive-indicator" class="keepalive-indicator" title="Keepalive Status"></div>
       </div>
-      <span class="badge" id="message-count" title="Recent messages count">0</span>
+      <div class="header-right">
+        <span class="version-label" id="extension-version"></span>
+        <span class="badge" id="message-count" title="Recent messages count">0</span>
+      </div>
     </header>
 
     <!-- Status Banner -->

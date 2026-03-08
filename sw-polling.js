@@ -168,7 +168,12 @@ async function pollOnceWithWait(waitSeconds = 0) {
       }
 
       const storedMessage = buildStoredMessage(msg, { status: "ok", errors: [], wasBound });
-      const delivery = await deliverToBoundTabs(boundTabIds, buildForwardPayload(msg, [], "ok"), serverConfig);
+      const delivery = await deliverToBoundTabs(
+        boundTabIds,
+        buildForwardPayload(msg, [], "ok"),
+        serverConfig,
+        settings
+      );
       messageList = applyDeliveryStatus(messageList, msg.id, delivery);
       messageList = upsertMessageList(messageList, storedMessage);
       dedupeSet.add(msg.id);
@@ -324,7 +329,12 @@ async function pollOnce() {
       }
 
       const storedMessage = buildStoredMessage(msg, { status: "ok", errors: [], wasBound });
-      const delivery = await deliverToBoundTabs(boundTabIds, buildForwardPayload(msg, [], "ok"), serverConfig);
+      const delivery = await deliverToBoundTabs(
+        boundTabIds,
+        buildForwardPayload(msg, [], "ok"),
+        serverConfig,
+        settings
+      );
       messageList = applyDeliveryStatus(messageList, msg.id, delivery);
       messageList = upsertMessageList(messageList, storedMessage);
       dedupeSet.add(msg.id);
@@ -418,7 +428,7 @@ async function processPendingBundles(pendingBundles, settings, boundTabIds, mess
         sha256: attachment.sha256
       }));
       const payload = buildForwardPayload(entry, payloadAttachments, "ok");
-      const delivery = await deliverToBoundTabs(tabIds, payload, serverConfig);
+      const delivery = await deliverToBoundTabs(tabIds, payload, serverConfig, settings);
       messageList = applyDeliveryStatus(messageList, entry.id, delivery);
       messageList = upsertMessageList(messageList, buildStoredMessage(entry, {
         status: "ok",
@@ -443,7 +453,7 @@ async function processPendingBundles(pendingBundles, settings, boundTabIds, mess
 
     console.warn("[aivo-relay] Bundle failed", entry.id, result.errors);
     const payload = buildForwardPayload(entry, [], "error", result.errors);
-    const delivery = await deliverToBoundTabs(tabIds, payload, serverConfig);
+    const delivery = await deliverToBoundTabs(tabIds, payload, serverConfig, settings);
     messageList = applyDeliveryStatus(messageList, entry.id, {
       ...delivery,
       overrideStatus: "bundle_error"
@@ -467,11 +477,14 @@ function isDuplicateMessage(message, dedupeSet, pendingBundles) {
   return false;
 }
 
-async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null) {
+async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null, settings = null) {
   let tabIds = Array.isArray(boundTabIds) ? [...boundTabIds] : [];
+  const effectiveSettings = settings || await getSettings();
+  const bindingModeEnabled = effectiveSettings.singleTabBindingMode !== false;
 
-  // If no bound tabs but server provided autoOpenTabUrl, create a new tab
-  if (tabIds.length === 0 && serverConfig?.autoOpenTabUrl) {
+  // Auto-open is only for unbound, non-binding mode flows. If tab binding mode is enabled,
+  // respect that and never auto-create/auto-bind a replacement tab.
+  if (tabIds.length === 0 && !bindingModeEnabled && serverConfig?.autoOpenTabUrl) {
     try {
       console.log("[aivo-relay] No bound tabs, auto-opening:", serverConfig.autoOpenTabUrl);
       const newTab = await chrome.tabs.create({
@@ -630,7 +643,8 @@ async function retryMessage(messageId) {
   }
 
   const payload = buildForwardPayload(target, [], "ok");
-  const delivery = await deliverToBoundTabs(boundTabIds, payload);
+  const settings = await getSettings();
+  const delivery = await deliverToBoundTabs(boundTabIds, payload, null, settings);
   const updated = applyDeliveryStatus(messageList, target.id, {
     ...delivery,
     overrideStatus: delivery.ok ? "queued" : delivery.reason
