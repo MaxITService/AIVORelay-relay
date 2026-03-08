@@ -3,7 +3,7 @@
 ## Current Behavior (Dec 2025)
 
 - Service worker polls `/messages`, filters keepalive/status, forwards regular messages to the bound tab.
-- Service worker now establishes a protocol-v2 session via `POST /session` before polling or fetching blobs, then sends strict per-request sequence/timestamp headers on all connector requests.
+- Service worker now establishes a protocol-v3 session via `POST /session` before polling or fetching blobs, using an authenticated ephemeral P-256 ECDH handshake.
 - Bundle messages can include attachments; the worker downloads `/blob/<attId>` and only forwards when all attachments succeed.
 - Attachment downloads are retried with a pending bundle queue, and recent message IDs are deduped across restarts.
 - Content script receives NEW_MESSAGE, inserts text, uploads attachments on ChatGPT, auto-sends when enabled.
@@ -17,15 +17,15 @@
 
 ## Password Authentication
 
-- The AivoRelay desktop app requires Bearer token authentication on its localhost server.
+- The connector password is now a bootstrap secret for the session handshake, not the per-request transport key.
 - Default password: `fklejqwhfiu342lhk3` (defined in `sw-config.js` and `popup.js`).
 - Password is stored in `chrome.storage.sync` under key `connectorPassword` to sync across Chrome instances.
-- All fetch requests to the AivoRelay server include `Authorization: Bearer {password}` header.
-- If server returns 401 Unauthorized, a user-friendly error is shown: "Authentication failed. Check that your password matches the AivoRelay app."
+- The service worker derives an HMAC auth key from that password, authenticates the `/session` handshake, then uses HKDF-derived per-session AES-GCM and HMAC keys for later requests/responses.
+- If the handshake fails, a user-friendly error is shown: "Authentication failed. Check that your password matches the AivoRelay app."
 - Popup includes a password input field with show/hide toggle (eye icon).
 - Password auto-saves on change with debounce (500ms delay).
 - **Auto-Update Flow**: On first connection with the default password, the server generates a unique 64-char hex password and sends it in the response as `passwordUpdate`. The extension saves this immediately via `saveConnectorPassword()` and uses it for all future requests.
-- Encrypted `/messages` responses are now decrypted in the service worker with Web Crypto AES-GCM using the shared connector secret.
+- Encrypted `/messages` and `/blob/<attId>` responses are decrypted in the service worker with Web Crypto AES-GCM using the derived per-session key.
 
 ## Popup
 

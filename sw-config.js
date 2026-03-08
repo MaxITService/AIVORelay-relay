@@ -12,16 +12,21 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_PASSWORD = "fklejqwhfiu342lhk3";
-const CONNECTOR_PROTOCOL_VERSION = 2;
+const CONNECTOR_PROTOCOL_VERSION = 3;
 const CONNECTOR_SESSION_PATH = "/session";
-const CONNECTOR_ENC_KEY_CONTEXT = "AivoRelay Connector Protocol v2 AES-256-GCM key";
+const CONNECTOR_PASSWORD_AUTH_CONTEXT = "AivoRelay Connector Protocol v3 password auth key";
+const CONNECTOR_SESSION_ENC_CONTEXT = "AivoRelay Connector Protocol v3 session AES-256-GCM key";
+const CONNECTOR_SESSION_MAC_CONTEXT = "AivoRelay Connector Protocol v3 session HMAC-SHA256 key";
 const CONNECTOR_SESSION_HEADER_NAMES = {
   protocolVersion: "x-aivorelay-protocol-version",
   sessionId: "x-aivorelay-session-id",
   sequence: "x-aivorelay-sequence",
   timestamp: "x-aivorelay-timestamp",
   serverSequence: "x-aivorelay-server-sequence",
-  sessionExpiresAt: "x-aivorelay-session-expires-at"
+  sessionExpiresAt: "x-aivorelay-session-expires-at",
+  requestMac: "x-aivorelay-request-mac",
+  responseMac: "x-aivorelay-response-mac",
+  payloadEncrypted: "x-aivorelay-payload-encrypted"
 };
 
 const STATUS_DEFAULT = {
@@ -57,5 +62,8 @@ const CONNECTOR_SESSION_DEFAULT = {
   nextClientSequence: 1,
   nextServerSequence: 1,
   expiresAt: 0,
-  protocolVersion: CONNECTOR_PROTOCOL_VERSION
+  protocolVersion: CONNECTOR_PROTOCOL_VERSION,
+  encKey: null,
+  macKey: null,
+  encryptionEnabled: true
 };

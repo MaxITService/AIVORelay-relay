@@ -24,8 +24,7 @@ async function sendStatus(payload = {}) {
   const statusPayload = buildStatusPayload(payload);
   const response = await postJsonWithTimeout(url, statusPayload, timeoutMs);
   if (!response.ok) {
-    const bodyText = await response.text();
-    throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
+    throw new Error(`HTTP ${response.status}: ${response.bodyText || "No response body"}`);
   }
 }
 

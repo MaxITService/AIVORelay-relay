@@ -126,10 +126,11 @@ async function downloadAttachment(messageId, attachment, attemptCount, settings)
   const headers = normalizeHeaders(attachment.fetch.headers);
 
   try {
-    const response = await fetchWithTimeout(attachment.fetch.url, settings.timeoutMs, {
+    const fetchResult = await fetchWithTimeout(attachment.fetch.url, settings.timeoutMs, {
       method,
       headers
     });
+    const response = fetchResult.response;
 
     if (!response.ok) {
       const code = `HTTP_${response.status}`;
@@ -150,7 +151,7 @@ async function downloadAttachment(messageId, attachment, attemptCount, settings)
       });
     }
 
-    const data = await response.arrayBuffer();
+    const data = await readConnectorResponseBytes(fetchResult);
     const sha256 = await computeSha256(data);
     await cacheAttachment(messageId, attachment, data, sha256);
     return { ok: true, didAttempt: true, data, sha256 };

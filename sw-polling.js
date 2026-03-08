@@ -99,10 +99,11 @@ async function pollOnceWithWait(waitSeconds = 0) {
     let dedupeSet = new Set(Array.isArray(stored.recentMessageIds) ? stored.recentMessageIds : []);
 
     // Build URL with wait parameter for long-polling
-    const response = await fetchWithTimeout(
+    const fetchResult = await fetchWithTimeout(
       buildRequestUrl(settings, stored.cursor, waitSeconds),
       timeoutMs
     );
+    const response = fetchResult.response;
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -119,7 +120,7 @@ async function pollOnceWithWait(waitSeconds = 0) {
     chrome.action.setBadgeText({ text: "" });
     chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
-    const bodyText = await readConnectorResponseText(response);
+    const bodyText = await readConnectorResponseText(fetchResult);
     const parsed = parseMaybeJson(bodyText);
     const parsedResponse = parseMessageResponse(parsed, bodyText);
     const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);
@@ -251,7 +252,8 @@ async function pollOnce() {
     let pendingBundles = normalizePendingBundles(stored.pendingBundles);
     let dedupeSet = new Set(Array.isArray(stored.recentMessageIds) ? stored.recentMessageIds : []);
 
-    const response = await fetchWithTimeout(buildRequestUrl(settings, stored.cursor), timeoutMs);
+    const fetchResult = await fetchWithTimeout(buildRequestUrl(settings, stored.cursor), timeoutMs);
+    const response = fetchResult.response;
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -269,7 +271,7 @@ async function pollOnce() {
     chrome.action.setBadgeText({ text: "" });
     chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
-    const bodyText = await readConnectorResponseText(response);
+    const bodyText = await readConnectorResponseText(fetchResult);
     const parsed = parseMaybeJson(bodyText);
     const parsedResponse = parseMessageResponse(parsed, bodyText);
     const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);

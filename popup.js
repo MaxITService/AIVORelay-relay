@@ -115,6 +115,7 @@ function handlePasswordInput() {
   passwordSaveTimer = setTimeout(async () => {
     try {
       await chrome.storage.sync.set({ connectorPassword: password });
+      await chrome.storage.local.remove("connectorSession");
       showPasswordSaved();
       // Trigger a reconnect with new password
       try {
