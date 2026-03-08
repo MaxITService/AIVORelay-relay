@@ -119,7 +119,7 @@ async function pollOnceWithWait(waitSeconds = 0) {
     chrome.action.setBadgeText({ text: "" });
     chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
-    const bodyText = await response.text();
+    const bodyText = await readConnectorResponseText(response);
     const parsed = parseMaybeJson(bodyText);
     const parsedResponse = parseMessageResponse(parsed, bodyText);
     const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);
@@ -269,7 +269,7 @@ async function pollOnce() {
     chrome.action.setBadgeText({ text: "" });
     chrome.action.setTitle({ title: "AivoRelay: Connected" });
 
-    const bodyText = await response.text();
+    const bodyText = await readConnectorResponseText(response);
     const parsed = parseMaybeJson(bodyText);
     const parsedResponse = parseMessageResponse(parsed, bodyText);
     const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);

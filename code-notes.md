@@ -3,6 +3,7 @@
 ## Current Behavior (Dec 2025)
 
 - Service worker polls `/messages`, filters keepalive/status, forwards regular messages to the bound tab.
+- Service worker now establishes a protocol-v2 session via `POST /session` before polling or fetching blobs, then sends strict per-request sequence/timestamp headers on all connector requests.
 - Bundle messages can include attachments; the worker downloads `/blob/<attId>` and only forwards when all attachments succeed.
 - Attachment downloads are retried with a pending bundle queue, and recent message IDs are deduped across restarts.
 - Content script receives NEW_MESSAGE, inserts text, uploads attachments on ChatGPT, auto-sends when enabled.
@@ -23,7 +24,8 @@
 - If server returns 401 Unauthorized, a user-friendly error is shown: "Authentication failed. Check that your password matches the AivoRelay app."
 - Popup includes a password input field with show/hide toggle (eye icon).
 - Password auto-saves on change with debounce (500ms delay).
-- **Auto-Update Flow**: On first connection with the default password, the server generates a unique 32-char hex password and sends it in the response as `passwordUpdate`. The extension saves this immediately via `saveConnectorPassword()` and uses it for all future requests. This one-time exchange ensures each install has a unique password.
+- **Auto-Update Flow**: On first connection with the default password, the server generates a unique 64-char hex password and sends it in the response as `passwordUpdate`. The extension saves this immediately via `saveConnectorPassword()` and uses it for all future requests.
+- Encrypted `/messages` responses are now decrypted in the service worker with Web Crypto AES-GCM using the shared connector secret.
 
 ## Popup
 
@@ -38,7 +40,7 @@
 
 - Keepalive messages are sent every 15s by `test-server.ps1` and acked by the extension.
 - Status messages are written back to the server via POST and filtered out from forwarding.
-- Bundle attachments are fetched via `/blob/<attId>` with one-time tokens.
+- Bundle attachments are fetched via `/blob/<attId>` with the active connector session and anti-replay headers.
 - `test-server.ps1` shortcuts: test-image, test-file, test-csv, test-bundle.
 
 ## Files of Interest

@@ -24,11 +24,14 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area !== "local") return;
-  if (changes.settings) {
+  if (area === "local" && changes.settings) {
+    void clearConnectorSession();
     void setupAlarm();
-    // Restart long-poll loop with new settings
     restartLongPollLoop();
+    return;
+  }
+  if (area === "sync" && changes.connectorPassword) {
+    void clearConnectorSession();
   }
 });
 

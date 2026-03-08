@@ -2,7 +2,7 @@
 
 const DEFAULT_SETTINGS = {
   host: "127.0.0.1",
-  port: 63155,
+  port: 38243,
   path: "/messages",
   pollMinutes: 1, // Reduced frequency - long-poll handles real-time delivery
   timeoutMs: 3000, // Legacy timeout for non-long-poll requests
@@ -12,6 +12,17 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_PASSWORD = "fklejqwhfiu342lhk3";
+const CONNECTOR_PROTOCOL_VERSION = 2;
+const CONNECTOR_SESSION_PATH = "/session";
+const CONNECTOR_ENC_KEY_CONTEXT = "AivoRelay Connector Protocol v2 AES-256-GCM key";
+const CONNECTOR_SESSION_HEADER_NAMES = {
+  protocolVersion: "x-aivorelay-protocol-version",
+  sessionId: "x-aivorelay-session-id",
+  sequence: "x-aivorelay-sequence",
+  timestamp: "x-aivorelay-timestamp",
+  serverSequence: "x-aivorelay-server-sequence",
+  sessionExpiresAt: "x-aivorelay-session-expires-at"
+};
 
 const STATUS_DEFAULT = {
   lastPollAt: null,
@@ -38,3 +49,13 @@ const ATTACHMENT_RETRY_DELAY_MS = 1500;
 const ATTACHMENT_CONCURRENCY = 2;
 const ATTACHMENT_CACHE_TTL_MS = 5 * 60 * 1000;
 const ATTACHMENT_CACHE_MAX = 50;
+
+const CONNECTOR_SESSION_DEFAULT = {
+  id: null,
+  host: null,
+  port: null,
+  nextClientSequence: 1,
+  nextServerSequence: 1,
+  expiresAt: 0,
+  protocolVersion: CONNECTOR_PROTOCOL_VERSION
+};

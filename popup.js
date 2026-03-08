@@ -1,12 +1,13 @@
 const DEFAULT_SETTINGS = {
   host: "127.0.0.1",
-  port: 63155,
+  port: 38243,
   path: "/messages",
   autoSend: true,
   singleTabBindingMode: true
 };
 
 const DEFAULT_PASSWORD = "fklejqwhfiu342lhk3";
+const MIN_CONNECTOR_PASSWORD_LEN = 64;
 
 const portInput = document.getElementById("port");
 const autoSendInput = document.getElementById("auto-send");
@@ -78,19 +79,40 @@ async function loadPassword() {
     const { connectorPassword } = await chrome.storage.sync.get({ connectorPassword: DEFAULT_PASSWORD });
     if (passwordInput) {
       passwordInput.value = connectorPassword || DEFAULT_PASSWORD;
+      updatePasswordValidity(passwordInput.value);
     }
   } catch (err) {
     console.warn("Failed to load password", err);
     if (passwordInput) {
       passwordInput.value = DEFAULT_PASSWORD;
+      updatePasswordValidity(passwordInput.value);
     }
   }
 }
 
+function isAllowedConnectorPassword(password) {
+  return password === DEFAULT_PASSWORD || password.length >= MIN_CONNECTOR_PASSWORD_LEN;
+}
+
+function updatePasswordValidity(password) {
+  if (!passwordInput) return false;
+
+  const isValid = isAllowedConnectorPassword(password);
+  passwordInput.classList.toggle("invalid", !isValid);
+  passwordInput.title = isValid
+    ? ""
+    : `Password must be at least ${MIN_CONNECTOR_PASSWORD_LEN} characters long unless you are using the legacy bootstrap password.`;
+  return isValid;
+}
+
 function handlePasswordInput() {
   if (passwordSaveTimer) clearTimeout(passwordSaveTimer);
+  const password = (passwordInput.value || "").trim();
+  if (!updatePasswordValidity(password)) {
+    return;
+  }
+
   passwordSaveTimer = setTimeout(async () => {
-    const password = passwordInput.value || DEFAULT_PASSWORD;
     try {
       await chrome.storage.sync.set({ connectorPassword: password });
       showPasswordSaved();

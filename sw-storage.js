@@ -5,6 +5,7 @@ async function ensureDefaults() {
     settings: {},
     messages: [],
     status: STATUS_DEFAULT,
+    connectorSession: CONNECTOR_SESSION_DEFAULT,
     cursor: null,
     boundTabId: null,
     boundTabInfo: null,
@@ -18,6 +19,14 @@ async function ensureDefaults() {
   const updates = {};
 
   if (!Array.isArray(stored.messages)) updates.messages = [];
+  if (!stored.connectorSession || typeof stored.connectorSession !== "object" || Array.isArray(stored.connectorSession)) {
+    updates.connectorSession = { ...CONNECTOR_SESSION_DEFAULT };
+  } else {
+    const mergedSession = { ...CONNECTOR_SESSION_DEFAULT, ...stored.connectorSession };
+    if (JSON.stringify(mergedSession) !== JSON.stringify(stored.connectorSession)) {
+      updates.connectorSession = mergedSession;
+    }
+  }
   if (!stored.status || typeof stored.status !== "object") {
     updates.status = STATUS_DEFAULT;
   } else {
@@ -199,6 +208,25 @@ async function getSettings() {
     settings: DEFAULT_SETTINGS
   });
   return { ...DEFAULT_SETTINGS, ...settings };
+}
+
+async function getConnectorSession() {
+  const { connectorSession } = await chrome.storage.local.get({
+    connectorSession: CONNECTOR_SESSION_DEFAULT
+  });
+  return { ...CONNECTOR_SESSION_DEFAULT, ...(connectorSession || {}) };
+}
+
+async function saveConnectorSession(session) {
+  await chrome.storage.local.set({
+    connectorSession: { ...CONNECTOR_SESSION_DEFAULT, ...(session || {}) }
+  });
+}
+
+async function clearConnectorSession() {
+  await chrome.storage.local.set({
+    connectorSession: { ...CONNECTOR_SESSION_DEFAULT }
+  });
 }
 
 function normalizePendingBundles(value) {
