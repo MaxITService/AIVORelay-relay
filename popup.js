@@ -6,7 +6,7 @@ const DEFAULT_SETTINGS = {
   singleTabBindingMode: true
 };
 
-const DEFAULT_PASSWORD = "fklejqwhfiu342lhk3";
+const DEFAULT_PASSWORD = "befc3aa14cc05e56011865df1c49d16ef9100a53d9bfa02be8d4ffd386324f65";
 const MIN_CONNECTOR_PASSWORD_LEN = 64;
 
 const portInput = document.getElementById("port");
@@ -26,6 +26,7 @@ const clearMessagesBtn = document.getElementById("clear-messages");
 const passwordInput = document.getElementById("password");
 const passwordToggleBtn = document.getElementById("password-toggle");
 const passwordSavedEl = document.getElementById("password-saved");
+const popupToastEl = document.getElementById("popup-toast");
 const eyeIcon = document.getElementById("eye-icon");
 const eyeOffIcon = document.getElementById("eye-off-icon");
 const statusBannerEl = document.getElementById("status-banner");
@@ -39,7 +40,9 @@ let currentBoundTabIds = [];
 let currentBoundTabInfos = {};
 let saveTimer = null;
 let passwordSaveTimer = null;
+let passwordInvalidToastTimer = null;
 let refreshInterval = null;
+let popupToastHideTimer = null;
 const attachmentPreviewCache = new Map();
 
 init();
@@ -104,7 +107,7 @@ async function loadPassword() {
 }
 
 function isAllowedConnectorPassword(password) {
-  return password === DEFAULT_PASSWORD || password.length >= MIN_CONNECTOR_PASSWORD_LEN;
+  return password.length >= MIN_CONNECTOR_PASSWORD_LEN;
 }
 
 function updatePasswordValidity(password) {
@@ -114,17 +117,24 @@ function updatePasswordValidity(password) {
   passwordInput.classList.toggle("invalid", !isValid);
   passwordInput.title = isValid
     ? ""
-    : `Password must be at least ${MIN_CONNECTOR_PASSWORD_LEN} characters long unless you are using the legacy bootstrap password.`;
+    : `Password must be at least ${MIN_CONNECTOR_PASSWORD_LEN} characters long.`;
   return isValid;
 }
 
 function handlePasswordInput() {
   if (passwordSaveTimer) clearTimeout(passwordSaveTimer);
+  if (passwordInvalidToastTimer) clearTimeout(passwordInvalidToastTimer);
   const password = (passwordInput.value || "").trim();
   if (!updatePasswordValidity(password)) {
+    if (password) {
+      passwordInvalidToastTimer = setTimeout(() => {
+        showPopupToast(`Password not saved. Password must be at least ${MIN_CONNECTOR_PASSWORD_LEN} symbols.`);
+      }, 500);
+    }
     return;
   }
 
+  hidePopupToast();
   passwordSaveTimer = setTimeout(async () => {
     try {
       await chrome.storage.sync.set({ connectorPassword: password });
@@ -148,6 +158,25 @@ function showPasswordSaved() {
   setTimeout(() => {
     passwordSavedEl.classList.remove("visible");
   }, 2000);
+}
+
+function showPopupToast(message) {
+  if (!popupToastEl) return;
+  popupToastEl.textContent = message;
+  popupToastEl.classList.add("visible");
+  if (popupToastHideTimer) clearTimeout(popupToastHideTimer);
+  popupToastHideTimer = setTimeout(() => {
+    popupToastEl.classList.remove("visible");
+  }, 2600);
+}
+
+function hidePopupToast() {
+  if (!popupToastEl) return;
+  if (popupToastHideTimer) {
+    clearTimeout(popupToastHideTimer);
+    popupToastHideTimer = null;
+  }
+  popupToastEl.classList.remove("visible");
 }
 
 function handlePasswordToggle() {

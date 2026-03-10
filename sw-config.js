@@ -11,7 +11,7 @@ const DEFAULT_SETTINGS = {
   singleTabBindingMode: true
 };
 
-const DEFAULT_PASSWORD = "fklejqwhfiu342lhk3";
+const DEFAULT_PASSWORD = "befc3aa14cc05e56011865df1c49d16ef9100a53d9bfa02be8d4ffd386324f65";
 const CONNECTOR_PROTOCOL_VERSION = 3;
 const CONNECTOR_SESSION_PATH = "/session";
 const CONNECTOR_PASSWORD_AUTH_CONTEXT = "AivoRelay Connector Protocol v3 password auth key";

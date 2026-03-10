@@ -200,6 +200,37 @@
         opacity: 1;
       }
 
+      .password-note {
+        margin-top: 4px;
+        font-size: 10px;
+        color: var(--muted);
+      }
+
+      .popup-toast {
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+        background: linear-gradient(145deg, rgba(74, 18, 18, 0.96), rgba(42, 12, 12, 0.96));
+        color: #fecaca;
+        font-size: 12px;
+        line-height: 1.35;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+        transition: opacity 180ms ease, transform 180ms ease;
+        z-index: 20;
+      }
+
+      .popup-toast.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
       .server {
         margin-top: 6px;
         font-size: 11px;
@@ -704,6 +735,7 @@
               </svg>
             </button>
           </div>
+          <div class="password-note">Use 64 symbols.</div>
         </div>
       </div>
 
@@ -750,6 +782,8 @@
       </div>
       <div class="messages" id="messages"></div>
     </section>
+
+    <div id="popup-toast" class="popup-toast" aria-live="polite"></div>
 
     <script src="popup.js"></script>
   </body>

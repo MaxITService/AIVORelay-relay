@@ -18,12 +18,13 @@
 ## Password Authentication
 
 - The connector password is now a bootstrap secret for the session handshake, not the per-request transport key.
-- Default password: `fklejqwhfiu342lhk3` (defined in `sw-config.js` and `popup.js`).
+- Default password: `befc3aa14cc05e56011865df1c49d16ef9100a53d9bfa02be8d4ffd386324f65` (defined in `sw-config.js` and `popup.js`).
 - Password is stored in `chrome.storage.sync` under key `connectorPassword` to sync across Chrome instances.
 - The service worker derives an HMAC auth key from that password, authenticates the `/session` handshake, then uses HKDF-derived per-session AES-GCM and HMAC keys for later requests/responses.
 - If the handshake fails, a user-friendly error is shown: "Authentication failed. Check that your password matches the AivoRelay app."
 - Popup includes a password input field with show/hide toggle (eye icon).
 - Password auto-saves on change with debounce (500ms delay).
+- If a typed password is too short to be accepted, the popup shows a toast explaining it was not saved and that passwords must be at least 64 symbols.
 - **Auto-Update Flow**: On first connection with the default password, the server generates a unique 64-char hex password and sends it in the response as `passwordUpdate`. The extension saves this immediately via `saveConnectorPassword()` and uses it for all future requests.
 - Encrypted `/messages` and `/blob/<attId>` responses are decrypted in the service worker with Web Crypto AES-GCM using the derived per-session key.
 
