@@ -7,25 +7,25 @@
     <style>
       :root {
         color-scheme: dark;
-        --bg-darkest: #110f0d;
-        --bg-dark: #1a1614;
-        --bg-medium: #221e1b;
-        --bg-card: #2a2522;
-        --border: rgba(168, 85, 247, 0.2);
-        --border-subtle: rgba(255, 255, 255, 0.08);
+        --bg: #121212;
+        --bg-top: #171717;
+        --bg-elevated: #1a1a1a;
+        --bg-soft: #222222;
+        --bg-input: rgba(16, 16, 16, 0.92);
+        --panel: linear-gradient(180deg, rgba(42, 42, 42, 0.82), rgba(28, 28, 28, 0.86));
+        --panel-soft: linear-gradient(180deg, rgba(35, 35, 35, 0.78), rgba(26, 26, 26, 0.82));
+        --border: #333333;
+        --border-soft: #2a2a2a;
         --text: #f5f5f5;
-        --text-secondary: #a8a29e;
-        --muted: #78716c;
-        --accent: #a855f7;
-        --accent-soft: rgba(168, 85, 247, 0.15);
-        --accent-glow: rgba(168, 85, 247, 0.4);
-        --error: #ef4444;
-        --error-soft: rgba(239, 68, 68, 0.15);
-        --warning: #f59e0b;
-        --warning-soft: rgba(245, 158, 11, 0.15);
-        --success: #22c55e;
-        --success-soft: rgba(34, 197, 94, 0.15);
-        --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        --text-secondary: #d2d2d2;
+        --muted: #9a9a9a;
+        --accent: #ff4d8d;
+        --accent-2: #9b5de5;
+        --accent-soft: rgba(255, 77, 141, 0.14);
+        --accent-soft-2: rgba(155, 93, 229, 0.12);
+        --warm: #ffd93d;
+        --error: #ff6b81;
+        --shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
       }
 
       * {
@@ -34,396 +34,817 @@
 
       html,
       body {
-        width: 420px;
-        height: 520px;
+        width: 640px;
+        min-width: 640px;
+        min-height: 612px;
         margin: 0;
         padding: 0;
+      }
+
+      html {
+        overflow: hidden;
+      }
+
+      html.tab-mode,
+      body.tab-mode {
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
         overflow: hidden;
       }
 
       body {
         padding: 12px;
-        font-family: "Trebuchet MS", "Gill Sans", "Calibri", sans-serif;
-        color: var(--text);
-        background: linear-gradient(165deg, var(--bg-dark) 0%, var(--bg-darkest) 100%);
         display: flex;
         flex-direction: column;
-        box-sizing: border-box;
+        gap: 10px;
+        overflow-x: hidden;
+        overflow-y: auto;
+        font: 13px/1.45 "Inter", "Segoe UI Variable Text", "Segoe UI", "Aptos", sans-serif;
+        letter-spacing: -0.01em;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 77, 141, 0.16), transparent 34%),
+          radial-gradient(circle at top right, rgba(155, 93, 229, 0.14), transparent 30%),
+          linear-gradient(180deg, var(--bg-top) 0%, var(--bg) 58%, #0e0e0e 100%);
       }
 
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 10px;
-        flex-shrink: 0;
+      body.tab-mode {
+        max-width: 1180px;
+        min-height: 100vh;
+        margin: 0 auto;
+        padding: 20px;
+        overflow: auto;
       }
 
-      h1 {
+      button,
+      input,
+      textarea {
+        font: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background-color 0.18s, border-color 0.18s, color 0.18s, transform 0.18s, box-shadow 0.18s;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      h1,
+      h2 {
         margin: 0;
-        font-size: 14px;
-        letter-spacing: 0.3px;
-        background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
       }
 
-      .header-right {
+      header,
+      .row,
+      .between,
+      .tab-bar,
+      .actions,
+      .site-tabs {
         display: flex;
         align-items: center;
         gap: 8px;
       }
 
-      .version-label {
-        font-size: 10px;
+      .between {
+        justify-content: space-between;
+      }
+
+      header {
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 0;
+      }
+
+      .brand {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .brand-copy {
+        min-width: 0;
+      }
+
+      .subtitle,
+      .small,
+      .field-note,
+      .password-note,
+      .selector-defaults,
+      .status-hint,
+      .help {
+        font-size: 11px;
+        line-height: 1.45;
         color: var(--muted);
-        letter-spacing: 0.2px;
+      }
+
+      .subtitle {
+        max-width: 390px;
+        margin-top: 2px;
+        color: #c7c7c7;
+      }
+
+      .small {
+        font-size: 12px;
+        color: #c2c2c2;
+      }
+
+      .field-note,
+      .password-note,
+      .selector-defaults,
+      .status-hint {
+        margin-top: 6px;
+      }
+
+      h1 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      h2 {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .pill,
+      .tab-btn,
+      .site-tab,
+      .btn,
+      .icon-btn {
+        border-radius: 6px;
+        border: 1px solid #3a3a3a;
+        background: rgba(30, 30, 30, 0.82);
+        color: var(--text-secondary);
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+
+      .tab-btn.active,
+      .site-tab.active,
+      .btn.primary {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border-color: rgba(255, 255, 255, 0.16);
+        color: #ffffff;
+        box-shadow: 0 8px 18px rgba(155, 93, 229, 0.26);
+      }
+
+      .btn.secondary,
+      .icon-btn {
+        background: rgba(28, 28, 28, 0.85);
+      }
+
+      .btn.danger {
+        background: rgba(255, 71, 87, 0.12);
+        color: #ffd8de;
+        border-color: rgba(255, 71, 87, 0.26);
+      }
+
+      .btn:hover,
+      .icon-btn:hover,
+      .tab-btn:hover,
+      .site-tab:hover {
+        background: rgba(42, 42, 42, 0.94);
+        border-color: #4a4a4a;
+      }
+
+      .tab-btn.active:hover,
+      .site-tab.active:hover,
+      .btn.primary:hover {
+        background: linear-gradient(135deg, #ff679b, #ab73eb);
+        border-color: rgba(255, 255, 255, 0.2);
       }
 
       .badge {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-width: 24px;
+        min-width: 26px;
         padding: 3px 8px;
-        border-radius: 999px;
-        background: linear-gradient(135deg, var(--accent-soft), rgba(168, 85, 247, 0.25));
-        color: var(--accent);
+        border-radius: 11px;
+        background: rgba(255, 217, 61, 0.12);
+        color: #ffe88d;
         font-weight: 700;
+        font-size: 10px;
+        border: 1px solid rgba(255, 217, 61, 0.22);
+      }
+
+      .version-label {
         font-size: 11px;
-        border: 1px solid rgba(168, 85, 247, 0.2);
+        color: var(--muted);
+      }
+
+      .keepalive {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #454545, #727272);
+        flex-shrink: 0;
+        margin-top: 5px;
+      }
+
+      .keepalive.active {
+        background: linear-gradient(135deg, #42d392, #1ea672);
+        box-shadow: 0 0 14px rgba(66, 211, 146, 0.45);
+      }
+
+      .keepalive.error {
+        background: linear-gradient(135deg, #ff6b81, #d7263d);
+        box-shadow: 0 0 14px rgba(255, 107, 129, 0.45);
+      }
+
+      .banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 650;
+        border: 1px solid var(--border);
+        background: linear-gradient(180deg, rgba(32, 32, 32, 0.92), rgba(24, 24, 24, 0.88));
+        backdrop-filter: blur(12px) saturate(150%);
+      }
+
+      .banner.disconnected {
+        border-color: rgba(255, 71, 87, 0.26);
+        color: #ffd5dc;
+        background: linear-gradient(180deg, rgba(60, 23, 34, 0.88), rgba(33, 18, 24, 0.84));
+      }
+
+      .banner.connected-unbound {
+        border-color: rgba(255, 179, 71, 0.24);
+        color: #ffe4b0;
+        background: linear-gradient(180deg, rgba(58, 39, 17, 0.88), rgba(34, 25, 16, 0.84));
+      }
+
+      .banner.off {
+        border-color: rgba(148, 163, 184, 0.24);
+        color: #d7dde6;
+        background: linear-gradient(180deg, rgba(44, 48, 56, 0.88), rgba(28, 32, 38, 0.84));
+      }
+
+      .banner.ready {
+        border-color: rgba(255, 77, 141, 0.26);
+        color: #ffd8ea;
+        background: linear-gradient(180deg, rgba(58, 24, 43, 0.88), rgba(32, 17, 34, 0.84));
+      }
+
+      .status-banner-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+
+      .status-banner-body {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .banner-binding-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(14, 14, 14, 0.28);
+      }
+
+      .banner-bound-wrap {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .banner-bound-label {
+        margin-bottom: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.68);
+      }
+
+      .banner svg {
+        width: 17px;
+        height: 17px;
+        display: block;
+      }
+
+      .tab-bar {
+        flex-wrap: wrap;
+        padding: 2px 0 0;
+      }
+
+      .panels {
+        flex: 0 0 auto;
+        min-height: auto;
+        display: block;
+      }
+
+      .panel {
+        display: none;
+        min-height: auto;
+        overflow: visible;
+      }
+
+      .panel.active {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
 
       .card {
-        background: linear-gradient(145deg, var(--bg-card), var(--bg-medium));
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
-        box-shadow: var(--shadow);
-        flex-shrink: 0;
         position: relative;
-        overflow: hidden;
+        overflow: visible;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px;
+        box-shadow: var(--shadow);
       }
 
       .card::before {
         content: "";
         position: absolute;
-        top: 0;
-        left: 10%;
-        right: 10%;
+        inset: 0 0 auto;
         height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.3), transparent);
-        pointer-events: none;
+        background: linear-gradient(90deg, transparent, rgba(255, 77, 141, 0.38), rgba(155, 93, 229, 0.28), transparent);
       }
 
-      .card + .card {
-        margin-top: 8px;
+      .help {
+        padding: 10px 12px;
+        border-radius: 8px;
+        border: 1px solid rgba(155, 93, 229, 0.28);
+        background: linear-gradient(135deg, rgba(255, 77, 141, 0.12), rgba(155, 93, 229, 0.12));
+        color: #ece0ff;
+      }
+
+      .grid2,
+      .grid3,
+      .toggle-grid,
+      .selectors-grid {
+        display: grid;
+        gap: 12px;
+      }
+
+      .grid2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .toggle-grid,
+      .selectors-grid {
+        grid-template-columns: 1fr;
+      }
+
+      body.tab-mode .selectors-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
       label {
         display: block;
+        margin-bottom: 6px;
+        font-size: 11px;
+        color: #b8b8b8;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
+
+      .toggle-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 11px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-soft);
+        background: var(--panel-soft);
+      }
+
+      .toggle-copy {
+        min-width: 0;
+      }
+
+      .toggle-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .toggle-desc {
+        margin-top: 4px;
         font-size: 11px;
         color: var(--muted);
-        margin-bottom: 4px;
+        line-height: 1.45;
+      }
+
+      .toggle-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .toggle-state {
+        font-size: 10px;
+        color: #d0d0d0;
+        min-width: 28px;
+        text-align: right;
+      }
+
+      .switch-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .switch-label input {
+        display: none;
+      }
+
+      .switch {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 999px;
+        transition: all 0.2s;
+      }
+
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #909090;
+        transition: all 0.2s;
+      }
+
+      .switch-label input:checked + .switch {
+        background: linear-gradient(135deg, var(--accent), var(--accent-2));
+        border-color: rgba(255, 255, 255, 0.16);
+      }
+
+      .switch-label input:checked + .switch::after {
+        left: 20px;
+        background: #ffffff;
       }
 
       input[type="number"],
       input[type="password"],
-      input[type="text"].password-input {
+      input[type="text"],
+      textarea {
         width: 100%;
-        padding: 6px 8px;
-        border-radius: 8px;
-        border: 1px solid var(--border-subtle);
-        background: var(--bg-darkest);
+        padding: 9px 10px;
+        border-radius: 4px;
+        border: 1px solid #3a3a3a;
+        background: var(--bg-input);
         color: var(--text);
         font-size: 13px;
-        transition: border 140ms ease, box-shadow 140ms ease;
       }
 
-      input[type="number"]:focus,
-      input[type="password"]:focus,
-      input[type="text"].password-input:focus {
+      input:focus,
+      textarea:focus {
         outline: none;
-        border-color: var(--accent);
-        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+        border-color: rgba(255, 77, 141, 0.62);
+        box-shadow: 0 0 0 2px rgba(255, 77, 141, 0.14);
       }
 
-      input[type="number"].invalid,
-      input[type="password"].invalid,
-      input[type="text"].password-input.invalid {
+      input.invalid,
+      textarea.invalid {
         border-color: var(--error);
-        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+        box-shadow: 0 0 0 2px rgba(255, 107, 129, 0.16);
       }
 
-      .password-wrapper {
+      textarea {
+        min-height: 116px;
+        resize: none;
+        overflow: hidden;
+        line-height: 1.5;
+      }
+
+      .pw-wrap {
         position: relative;
-        display: flex;
-        align-items: center;
       }
 
-      .password-wrapper input {
-        padding-right: 32px;
+      .pw-wrap input {
+        padding-right: 82px;
       }
 
-      .password-toggle {
+      .pw-toggle {
         position: absolute;
-        right: 6px;
+        right: 7px;
+        top: 50%;
+        transform: translateY(-50%);
         background: none;
         border: none;
-        cursor: pointer;
-        padding: 4px;
         color: var(--muted);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        padding: 4px;
       }
 
-      .password-toggle:hover {
-        color: var(--text);
+      .pw-copy {
+        position: absolute;
+        right: 34px;
+        top: 50%;
+        transform: translateY(-50%);
+        padding: 3px 7px;
+        min-height: 0;
+        font-size: 10px;
+        line-height: 1.2;
       }
 
-      .password-toggle svg {
+      .pw-toggle svg {
         width: 16px;
         height: 16px;
       }
 
-      .password-saved {
+      .saved {
         font-size: 10px;
-        color: var(--accent);
+        color: #ffb7d1;
         margin-left: 6px;
         opacity: 0;
-        transition: opacity 200ms ease;
+        transition: opacity 0.2s;
       }
 
-      .password-saved.visible {
+      .saved.visible {
         opacity: 1;
       }
 
-      .password-note {
-        margin-top: 4px;
-        font-size: 10px;
-        color: var(--muted);
-      }
-
-      .popup-toast {
-        position: fixed;
-        left: 12px;
-        right: 12px;
-        bottom: 12px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        border: 1px solid rgba(239, 68, 68, 0.35);
-        background: linear-gradient(145deg, rgba(74, 18, 18, 0.96), rgba(42, 12, 12, 0.96));
-        color: #fecaca;
-        font-size: 12px;
-        line-height: 1.35;
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
-        opacity: 0;
-        transform: translateY(8px);
-        pointer-events: none;
-        transition: opacity 180ms ease, transform 180ms ease;
-        z-index: 20;
-      }
-
-      .popup-toast.visible {
-        opacity: 1;
-        transform: translateY(0);
+      .server,
+      .status {
+        margin-top: 8px;
+        font-size: 11px;
       }
 
       .server {
-        margin-top: 6px;
-        font-size: 11px;
-        color: var(--muted);
         display: flex;
         justify-content: space-between;
-        gap: 8px;
+        gap: 12px;
+        color: var(--muted);
+      }
+
+      .server.identity-row {
+        align-items: flex-start;
       }
 
       .server-url {
-        font-weight: 600;
+        font-weight: 700;
         color: var(--text-secondary);
         text-align: right;
       }
 
-      .status {
-        margin-top: 4px;
+      .identity-value {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .identity-code {
+        font-family: "Cascadia Code", "Consolas", monospace;
         font-size: 11px;
-        color: var(--muted);
-        min-height: 14px;
+        color: var(--text);
+        word-break: break-all;
+        text-align: right;
       }
 
       .status.error {
-        color: var(--error);
+        color: #ffc1cc;
       }
 
-      /* Toggle switch styles */
-      .toggle-row {
-        margin-top: 8px;
+      .bound-wrap {
+        text-align: right;
+        flex: 1;
+        min-width: 180px;
+      }
+
+      .bound-status {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .bound-tabs {
+        margin-top: 10px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .bound-item {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        font-size: 11px;
+        padding: 7px 9px;
+        background: rgba(20, 20, 20, 0.72);
+        border: 1px solid var(--border-soft);
+        border-radius: 8px;
+        font-size: 10px;
+      }
+
+      .bound-label {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         color: var(--text-secondary);
       }
 
-      .toggle-label {
+      .unbind-one {
+        background: none;
+        border: none;
+        color: #ffb7c5;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 0 4px;
+      }
+
+      .site-tabs {
+        flex-wrap: wrap;
+        padding-bottom: 4px;
+      }
+
+      .selector-head {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
+        justify-content: space-between;
         gap: 8px;
-        font-weight: 600;
-        cursor: pointer;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
       }
 
-      .toggle-label input {
-        display: none;
+      .selector-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
       }
 
-      .toggle-switch {
-        position: relative;
-        width: 36px;
-        height: 20px;
-        background: var(--bg-darkest);
-        border: 1px solid var(--border-subtle);
-        border-radius: 999px;
-        transition: all 200ms ease;
-        flex-shrink: 0;
-      }
-
-      .toggle-switch::after {
-        content: '';
-        position: absolute;
-        top: 2px;
-        left: 2px;
-        width: 14px;
-        height: 14px;
-        background: var(--muted);
-        border-radius: 50%;
-        transition: all 200ms ease;
-      }
-
-      .toggle-label input:checked + .toggle-switch {
-        background: var(--accent);
-        border-color: var(--accent);
-      }
-
-      .toggle-label input:checked + .toggle-switch::after {
-        left: 18px;
-        background: white;
-      }
-
-      .toggle-hint {
+      .selector-help {
         font-size: 10px;
         color: var(--muted);
+        line-height: 1.45;
+      }
+
+      .selector-picks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 10px 0 12px;
       }
 
       .messages-card {
-        flex: 1;
         display: flex;
         flex-direction: column;
-        overflow: hidden;
-        min-height: 0;
-        flex-shrink: 1;
+      }
+
+      .messages-card.compact-dashboard {
+        gap: 8px;
+      }
+
+      .compact-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .compact-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        justify-content: flex-end;
+      }
+
+      .compact-actions .btn,
+      .compact-actions .icon-btn {
+        padding: 5px 9px;
+      }
+
+      .mini-toggle-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+      }
+
+      .mini-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border-soft);
+        background: rgba(18, 18, 18, 0.72);
+      }
+
+      .mini-toggle-copy {
+        min-width: 0;
+      }
+
+      .mini-toggle-copy .toggle-title {
+        margin-bottom: 2px;
+      }
+
+      .mini-toggle-copy .toggle-desc {
+        font-size: 10px;
+        line-height: 1.35;
       }
 
       .messages {
         display: flex;
         flex-direction: column;
         gap: 6px;
-        flex: 1;
-        overflow-y: auto;
-        padding-right: 4px;
-        min-height: 0;
       }
 
-      .messages::-webkit-scrollbar {
-        width: 4px;
-      }
-
-      .messages::-webkit-scrollbar-track {
-        background: var(--bg-darkest);
-        border-radius: 2px;
-      }
-
-      .messages::-webkit-scrollbar-thumb {
-        background: var(--muted);
-        border-radius: 2px;
-      }
-
-      .messages::-webkit-scrollbar-thumb:hover {
-        background: var(--accent);
+      .messages.compact {
+        max-height: none;
       }
 
       .message {
-        border-radius: 10px;
-        border: 1px solid var(--border-subtle);
-        padding: 6px 8px;
-        background: var(--bg-dark);
-        animation: rise 160ms ease;
+        border-radius: 8px;
+        border: 1px solid var(--border-soft);
+        padding: 8px 9px;
+        background: rgba(16, 16, 16, 0.74);
       }
 
-      .message:hover {
-        border-color: var(--border);
-      }
-
-      .message-time {
+      .message-time,
+      .message-status {
         font-size: 10px;
-        color: var(--muted);
-        margin-bottom: 2px;
+        color: #b0b0b0;
+        margin-bottom: 4px;
       }
 
       .message-text {
-        font-size: 11px;
+        font-size: 10.5px;
+        color: var(--text);
         white-space: pre-wrap;
         word-break: break-word;
-        color: var(--text);
-      }
-
-      .message-status {
-        font-size: 10px;
-        color: var(--muted);
-        margin-bottom: 2px;
+        line-height: 1.42;
       }
 
       .attachments {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
-        margin-top: 4px;
+        gap: 5px;
+        margin-top: 6px;
       }
 
       .attachment {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        padding: 3px 6px;
+        gap: 5px;
+        padding: 4px 7px;
         border-radius: 6px;
-        border: 1px solid var(--border-subtle);
-        background: var(--bg-medium);
+        border: 1px solid var(--border-soft);
+        background: rgba(30, 30, 30, 0.82);
       }
 
       .attachment-thumb {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         object-fit: cover;
         border-radius: 4px;
-        border: 1px solid var(--border-subtle);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .attachment-icon {
-        font-size: 8px;
+        font-size: 9px;
         font-weight: 700;
-        color: var(--accent);
-        background: var(--accent-soft);
+        color: #ffd6ea;
+        background: rgba(255, 77, 141, 0.14);
         border-radius: 999px;
-        padding: 2px 5px;
+        padding: 2px 6px;
       }
 
       .attachment-label {
         font-size: 10px;
         color: var(--text-secondary);
-        max-width: 120px;
+        max-width: 140px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -436,355 +857,262 @@
       }
 
       .message-actions {
-        margin-top: 4px;
+        margin-top: 8px;
         display: flex;
         justify-content: flex-end;
       }
 
       .retry-btn {
-        background: var(--bg-medium);
-        color: var(--error);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        padding: 3px 8px;
-        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(255, 77, 141, 0.18), rgba(155, 93, 229, 0.18));
+        color: #ffe5f1;
+        border: 1px solid rgba(255, 77, 141, 0.26);
+        padding: 5px 10px;
+        border-radius: 6px;
         font-size: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 140ms ease;
-      }
-
-      .retry-btn:hover {
-        background: var(--error-soft);
-        border-color: rgba(239, 68, 68, 0.5);
+        font-weight: 700;
       }
 
       .empty {
         text-align: center;
         font-size: 11px;
         color: var(--muted);
-        padding: 12px 8px;
+        padding: 14px 8px;
       }
 
-      .keepalive-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #57534e, #78716c);
-        transition: all 350ms cubic-bezier(0.4, 0, 0.2, 1);
+      .popup-toast {
+        position: fixed;
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        padding: 11px 13px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 77, 141, 0.28);
+        background: linear-gradient(145deg, rgba(59, 22, 43, 0.96), rgba(31, 17, 34, 0.96));
+        color: #ffe2ef;
+        font-size: 12px;
+        line-height: 1.35;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        transform: translateY(8px);
+        pointer-events: none;
+        transition: opacity 0.18s, transform 0.18s;
+        z-index: 20;
       }
 
-      .keepalive-indicator.active {
-        background: linear-gradient(135deg, #22c55e, #16a34a);
-        box-shadow: 0 0 8px rgba(34, 197, 94, 0.6), 0 0 3px rgba(34, 197, 94, 0.8);
-        animation: pulse-glow 2s infinite;
+      .popup-toast.visible {
+        opacity: 1;
+        transform: translateY(0);
       }
 
-      @keyframes pulse-glow {
-        0%, 100% {
-          box-shadow: 0 0 8px rgba(34, 197, 94, 0.6), 0 0 3px rgba(34, 197, 94, 0.8);
-        }
-        50% {
-          box-shadow: 0 0 12px rgba(34, 197, 94, 0.8), 0 0 5px rgba(34, 197, 94, 1);
-        }
+      .panel::-webkit-scrollbar,
+      .messages::-webkit-scrollbar,
+      .bound-tabs::-webkit-scrollbar,
+      .site-tabs::-webkit-scrollbar,
+      textarea::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
       }
 
-      /* Status banner */
-      .status-banner {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 10px;
-        border-radius: 10px;
-        margin-bottom: 8px;
-        font-size: 11px;
-        font-weight: 600;
-        transition: all 300ms ease;
-        flex-shrink: 0;
-      }
-
-      .status-banner.disconnected {
-        background: var(--error-soft);
-        border: 1px solid rgba(239, 68, 68, 0.25);
-        color: var(--error);
-      }
-
-      .status-banner.connected-unbound {
-        background: var(--warning-soft);
-        border: 1px solid rgba(245, 158, 11, 0.25);
-        color: var(--warning);
-      }
-
-      .status-banner.ready {
-        background: var(--success-soft);
-        border: 1px solid rgba(34, 197, 94, 0.25);
-        color: var(--success);
-      }
-
-      .status-banner-icon {
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-      }
-
-      .status-banner-text {
-        flex: 1;
-      }
-
-      .status-banner-hint {
-        font-size: 10px;
-        font-weight: 400;
-        opacity: 0.8;
-        margin-top: 2px;
-      }
-
-      .btn-primary {
-        background: var(--accent);
-        color: #fff;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: opacity 140ms ease, transform 140ms ease;
-      }
-
-      .btn-primary:hover {
-        opacity: 0.9;
-      }
-
-      .btn-primary:active {
-        transform: scale(0.96);
-      }
-
-      .btn-secondary {
-        background: var(--bg-medium);
-        color: var(--accent);
-        border: 1px solid var(--border);
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: opacity 140ms ease;
-      }
-
-      .btn-secondary:hover {
-        opacity: 0.9;
-      }
-
-      .btn-secondary:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-      }
-
-      .btn-danger {
-        background: var(--bg-medium);
-        color: var(--error);
-        border: 1px solid rgba(239, 68, 68, 0.3);
-        padding: 3px 8px;
+      .panel::-webkit-scrollbar-track,
+      .messages::-webkit-scrollbar-track,
+      .bound-tabs::-webkit-scrollbar-track,
+      .site-tabs::-webkit-scrollbar-track,
+      textarea::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
         border-radius: 999px;
-        font-size: 10px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 140ms ease;
       }
 
-      .btn-danger:hover {
-        background: var(--error-soft);
+      .panel::-webkit-scrollbar-thumb,
+      .messages::-webkit-scrollbar-thumb,
+      .bound-tabs::-webkit-scrollbar-thumb,
+      .site-tabs::-webkit-scrollbar-thumb,
+      textarea::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(255, 77, 141, 0.58), rgba(155, 93, 229, 0.58));
+        border-radius: 999px;
       }
 
-      .btn-danger:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
+      @media (max-width: 760px) {
+        body.tab-mode {
+          padding: 12px;
+        }
+
+        body.tab-mode .grid2,
+        body.tab-mode .grid3,
+        body.tab-mode .selectors-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
-      .port-actions {
-        margin-top: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
+      body:not(.tab-mode) .compact-head {
         gap: 8px;
       }
 
-      .tab-actions {
-        display: flex;
-        align-items: center;
+      body:not(.tab-mode) .compact-head .btn {
+        padding: 5px 9px;
+      }
+
+      body:not(.tab-mode) .status-hint,
+      body:not(.tab-mode) .toggle-desc,
+      body:not(.tab-mode) .field-note,
+      body:not(.tab-mode) .password-note {
+        line-height: 1.32;
+      }
+
+      body:not(.tab-mode) .messages {
         gap: 6px;
       }
 
-      .messages-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 6px;
-        font-size: 11px;
-        color: var(--text-secondary);
-        font-weight: 600;
-      }
-
-      .bound-tabs-list {
-        margin-top: 6px;
-        display: grid;
-        gap: 3px;
-        max-height: 60px;
-        overflow-y: auto;
-      }
-
-      .bound-tab-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 3px 6px;
-        background: var(--bg-dark);
-        border: 1px solid var(--border-subtle);
-        border-radius: 6px;
-        font-size: 10px;
-      }
-
-      .bound-tab-label {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--text-secondary);
-      }
-
-      .btn-unbind-single {
-        background: none;
-        border: none;
-        color: var(--error);
-        font-size: 12px;
-        font-weight: 700;
-        cursor: pointer;
-        padding: 0 3px;
-        opacity: 0.6;
-        transition: opacity 140ms ease;
-      }
-
-      .btn-unbind-single:hover {
-        opacity: 1;
-      }
-
-      .row-compact {
-        display: flex;
-        gap: 8px;
-        margin-top: 6px;
-      }
-
-      .row-compact > div {
-        flex: 1;
-      }
-
-      @keyframes rise {
-        from {
-          opacity: 0;
-          transform: translateY(3px);
+      @media (max-width: 520px) {
+        .mini-toggle-row {
+          grid-template-columns: 1fr;
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
+
+        .banner-binding-row {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .compact-actions {
+          width: 100%;
+          justify-content: flex-start;
+        }
+
+        .compact-actions .btn,
+        .compact-actions .icon-btn {
+          flex: 1 1 0;
         }
       }
     </style>
   </head>
-  <body>
+  <body data-aivorelay-popup="true">
     <header>
-      <div style="display: flex; align-items: center; gap: 8px">
-        <h1>AivoRelay</h1>
-        <div id="keepalive-indicator" class="keepalive-indicator" title="Keepalive Status"></div>
+      <div class="brand">
+        <div id="keepalive-indicator" class="keepalive keepalive-indicator" title="Gray means OFF, red means failure, green means connected."></div>
+        <div class="brand-copy">
+          <h1>AivoRelay Connector</h1>
+          <div class="subtitle">Bind tabs, inspect delivery, and teach the extension where chat controls live.</div>
+        </div>
       </div>
-      <div class="header-right">
+      <div class="row">
+        <button id="open-in-tab" type="button" class="icon-btn" title="Open the full settings view in a normal browser tab for more space.">Open In Tab</button>
         <span class="version-label" id="extension-version"></span>
-        <span class="badge" id="message-count" title="Recent messages count">0</span>
+        <span class="badge" id="message-count" title="How many recent messages are stored locally.">0</span>
       </div>
     </header>
-
-    <!-- Status Banner -->
-    <div id="status-banner" class="status-banner disconnected">
-      <svg class="status-banner-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <line x1="12" y1="8" x2="12" y2="12"></line>
-        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-      </svg>
-      <div class="status-banner-text">
+    <div id="status-banner" class="banner status-banner disconnected">
+      <div class="status-banner-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      </div>
+      <div class="status-banner-body">
         <div id="status-banner-title">Disconnected</div>
-        <div id="status-banner-hint" class="status-banner-hint">Waiting for connection...</div>
+        <div id="status-banner-hint" class="status-hint status-banner-hint">Waiting for connection...</div>
+        <div class="banner-binding-row">
+          <div class="banner-bound-wrap">
+            <div class="banner-bound-label">Bound tab</div>
+            <div id="bound-status" class="bound-status">No tabs bound</div>
+          </div>
+          <div class="compact-actions">
+            <button id="bind-tab" class="btn primary btn-primary" title="Bind the current browser tab so new messages go there.">Bind Current Tab</button>
+            <button id="unbind-all" class="btn secondary btn-secondary" disabled title="Remove every current tab binding.">Unbind All</button>
+          </div>
+        </div>
+        <div id="bound-tabs-list" class="bound-tabs" style="display:none"></div>
+        <button id="unbind-tab" class="btn secondary btn-secondary" disabled hidden aria-hidden="true" type="button">Unbind</button>
+        <div class="mini-toggle-row">
+          <div class="mini-toggle">
+            <div class="mini-toggle-copy">
+              <div class="toggle-title" title="If enabled, the extension presses the site send button after inserting the text.">Auto-send</div>
+            </div>
+            <div class="toggle-wrap"><span class="toggle-state" id="auto-send-state">On</span><label class="switch-label toggle-label" for="auto-send"><input id="auto-send" type="checkbox" /><span class="switch toggle-switch"></span></label></div>
+          </div>
+          <div class="mini-toggle">
+            <div class="mini-toggle-copy">
+              <div class="toggle-title" title="Keeps only one bound tab at a time. Auto-open will still create and bind a fresh tab when none is bound.">Single tab mode</div>
+            </div>
+            <div class="toggle-wrap"><span class="toggle-state" id="single-tab-state">On</span><label class="switch-label toggle-label" for="single-tab-mode"><input id="single-tab-mode" type="checkbox" checked /><span class="switch toggle-switch"></span></label></div>
+          </div>
+        </div>
       </div>
     </div>
-
-    <section class="card">
-      <div class="row-compact">
-        <div>
-          <label for="port">Port</label>
-          <input id="port" type="number" min="1" max="65535" step="1" inputmode="numeric" />
-        </div>
-        <div>
-          <label for="password">Password <span id="password-saved" class="password-saved">Saved</span></label>
-          <div class="password-wrapper">
-            <input id="password" type="password" class="password-input" autocomplete="off" />
-            <button type="button" id="password-toggle" class="password-toggle" title="Show/hide">
-              <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <svg id="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                <line x1="1" y1="1" x2="23" y2="23"></line>
-              </svg>
-            </button>
+    <nav class="tab-bar" aria-label="Main sections">
+      <button type="button" class="tab-btn active tab-button" data-panel="messages" title="Recent message history plus resend actions.">Messages</button>
+      <button type="button" class="tab-btn tab-button" data-panel="settings" title="Connection, selector recovery, and day-to-day controls.">Settings</button>
+      <button type="button" class="tab-btn tab-button" data-panel="selectors" title="Custom selectors, heuristics, and manual recovery tools.">Selectors</button>
+    </nav>
+    <div class="panels">
+      <section id="panel-settings" class="panel">
+        <section class="card">
+          <div class="between"><div><h2>Connector Basics</h2><div class="small">These settings tell the extension how to reach the desktop app and what to do after text is inserted.</div></div></div>
+          <div class="help" style="margin-top:10px"><strong>Normal flow:</strong> AivoRelay sends text, the extension finds the editor, pastes into it, looks for the stop button first, and only presses send when the page is ready.</div>
+          <div class="toggle-card" style="margin-top:12px">
+            <div class="toggle-copy">
+              <div class="toggle-title" title="Turns the browser connector on or off for this extension.">Connector enabled</div>
+              <div class="toggle-desc">OFF stops this extension from polling AivoRelay until you turn it back on.</div>
+            </div>
+            <div class="toggle-wrap"><span class="toggle-state" id="connector-enabled-state">On</span><label class="switch-label" for="connector-enabled"><input id="connector-enabled" type="checkbox" checked /><span class="switch"></span></label></div>
           </div>
-          <div class="password-note">Use 64 symbols.</div>
-        </div>
-      </div>
-
-      <div class="server">
-        <span>Server</span>
-        <span class="server-url" id="server-url"></span>
-      </div>
-      <div class="status" id="status"></div>
-
-      <div class="toggle-row">
-        <label class="toggle-label" for="auto-send">
-          <input id="auto-send" type="checkbox" />
-          <span class="toggle-switch"></span>
-          Auto-send
-        </label>
-        <span class="toggle-hint">Default for all tabs</span>
-      </div>
-
-      <div class="toggle-row">
-        <label class="toggle-label" for="single-tab-mode">
-          <input id="single-tab-mode" type="checkbox" checked />
-          <span class="toggle-switch"></span>
-          Single tab mode
-        </label>
-        <span class="toggle-hint">Auto-unbind others</span>
-      </div>
-
-      <div class="port-actions">
-        <div class="tab-actions">
-          <button id="bind-tab" class="btn-primary">Bind Tab</button>
-          <button id="unbind-tab" class="btn-secondary" disabled style="display: none">Unbind</button>
-          <button id="unbind-all" class="btn-secondary" disabled>Unbind All</button>
-        </div>
-        <span id="bound-status" style="font-size: 10px; color: var(--muted); flex: 1; text-align: right;">No tabs bound</span>
-      </div>
-
-      <div id="bound-tabs-list" class="bound-tabs-list" style="display: none"></div>
-    </section>
-
-    <section class="card messages-card">
-      <div class="messages-header">
-        <span>Messages</span>
-        <button id="clear-messages" class="btn-danger" type="button">Clear</button>
-      </div>
-      <div class="messages" id="messages"></div>
-    </section>
-
+          <div class="grid2" style="margin-top:12px">
+            <div><label for="port" title="Local HTTP port used by the AivoRelay desktop app.">Port</label><input id="port" type="number" min="1" max="65535" step="1" inputmode="numeric" /><div class="field-note">Change only if the app listens on a non-default port.</div></div>
+            <div><label for="password" title="Shared secret between the desktop app and the extension.">Password <span id="password-saved" class="saved password-saved">Saved</span></label><div class="pw-wrap password-wrapper"><input id="password" type="password" class="password-input" autocomplete="off" /><button type="button" id="copy-password" class="btn secondary pw-copy" title="Copy the connector password.">Copy</button><button type="button" id="password-toggle" class="pw-toggle password-toggle" title="Show or hide the connector password."><svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg><svg id="eye-off-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg></button></div><div class="password-note">Minimum length is 64 symbols. The desktop app can rotate it automatically after pairing.</div></div>
+          </div>
+          <div class="server"><span>Server</span><span class="server-url" id="server-url"></span></div>
+          <div class="server identity-row">
+            <span>CORS Origin</span>
+            <div class="identity-value">
+              <span id="extension-id" class="identity-code"></span>
+              <button id="copy-extension-id" class="btn secondary" type="button" title="Copy the full CORS origin for this extension.">Copy</button>
+            </div>
+          </div>
+          <div class="field-note">Needed for manual CORS setup in AivoRelay. Copy and paste the full value exactly as shown.</div>
+          <div class="status" id="status"></div>
+        </section>
+      </section>
+      <section id="panel-selectors" class="panel">
+        <section class="card">
+          <div><h2>How Recovery Works</h2><div class="small">The extension tries saved selectors, then defaults, then heuristics. If that still fails, it can offer a manual picker toast so you click the right element once and save it.</div></div>
+          <div class="help" style="margin-top:10px"><strong>Editor</strong> is the text input. <strong>Send button</strong> submits the prompt. <strong>Stop button</strong> is checked first so AivoRelay does not send while the AI is still generating. If a site falsely looks "busy", you can ignore stop detection below.</div>
+          <div class="help" style="margin-top:8px"><strong>If text never appears</strong>, fix <strong>Editor</strong>. <strong>If text appears but does not send</strong>, fix <strong>Send button</strong>. <strong>If AivoRelay sends too early while the AI is still answering</strong>, fix <strong>Stop button</strong>.</div>
+          <div class="help" style="margin-top:8px"><strong>Manual picker:</strong> <strong>Pick Element</strong> only chooses an element on the page. <strong>Save for This Site</strong> is the step that actually stores it.</div>
+          <div class="grid3" style="margin-top:12px">
+            <div class="toggle-card"><div class="toggle-copy"><div class="toggle-title" title="Searches the page for likely text inputs when selectors fail.">Auto-find editor</div><div class="toggle-desc">Looks for visible chat inputs, contenteditable editors, and shadow-root controls.</div></div><div class="toggle-wrap"><span class="toggle-state" id="heuristic-editor-state">On</span><label class="switch-label" for="heuristic-editor"><input id="heuristic-editor" type="checkbox" /><span class="switch"></span></label></div></div>
+            <div class="toggle-card"><div class="toggle-copy"><div class="toggle-title" title="Scores likely submit buttons near the editor if selectors fail.">Auto-find send</div><div class="toggle-desc">Uses keywords, button state, icons, and distance from the editor.</div></div><div class="toggle-wrap"><span class="toggle-state" id="heuristic-send-state">On</span><label class="switch-label" for="heuristic-send"><input id="heuristic-send" type="checkbox" /><span class="switch"></span></label></div></div>
+            <div class="toggle-card"><div class="toggle-copy"><div class="toggle-title" title="Looks for stop / cancel controls to avoid interrupting an active generation.">Auto-find stop</div><div class="toggle-desc">Useful on sites that replace Send with Stop while the answer is streaming.</div></div><div class="toggle-wrap"><span class="toggle-state" id="heuristic-stop-state">On</span><label class="switch-label" for="heuristic-stop"><input id="heuristic-stop" type="checkbox" /><span class="switch"></span></label></div></div>
+            <div class="toggle-card"><div class="toggle-copy"><div class="toggle-title" title="Use this if a site falsely looks busy and you still want AivoRelay to keep trying to send.">Ignore stop button</div><div class="toggle-desc">Turn this on if you do not want stop-button detection to block delivery and prefer AivoRelay to always attempt sending, even when the site claims a stop button is visible.</div></div><div class="toggle-wrap"><span class="toggle-state" id="ignore-stop-state">Off</span><label class="switch-label" for="ignore-stop"><input id="ignore-stop" type="checkbox" /><span class="switch"></span></label></div></div>
+          </div>
+        </section>
+        <section class="card">
+          <div class="between"><div><h2>Site Selectors</h2><div class="small">Edit one JSON block per site. Pick buttons still help you capture editor, send, and stop controls without hand-writing CSS.</div></div><span class="pill" title="Pick chooses one target field, Save stores the full JSON block.">Pick chooses, Save stores</span></div>
+          <div id="selector-site-tabs" class="site-tabs" style="margin-top:12px" aria-label="Supported sites"></div>
+          <div class="actions" style="margin:12px 0"><button id="save-site-selectors" type="button" class="btn primary" title="Save the custom selectors for the currently selected site.">Save Selectors</button><button id="reset-site-selectors" type="button" class="btn secondary" title="Remove only the custom selectors for the selected site and fall back to defaults again.">Reset selectors for this site</button></div>
+          <div class="selectors-grid">
+            <div>
+              <div class="selector-head">
+                <div class="selector-title" title="All custom selectors for the selected site are stored as one JSON object.">Selector JSON</div>
+              </div>
+              <div class="selector-help">The textarea is prefilled with the working site defaults. Edit that JSON directly, use the three pick buttons when needed, and Save Selectors to store your version for this site.</div>
+              <div class="selector-picks">
+                <button id="pick-editor" type="button" class="icon-btn" title="Choose the editor on the active browser tab, then save it for this site.">Pick Editor</button>
+                <button id="pick-send" type="button" class="icon-btn" title="Choose the send button on the active browser tab, then save it for this site.">Pick Send</button>
+                <button id="pick-stop" type="button" class="icon-btn" title="Choose the stop button on the active browser tab, then save it for this site.">Pick Stop</button>
+              </div>
+              <textarea id="selector-json" spellcheck="false"></textarea>
+              <div id="selector-json-defaults" class="selector-defaults" hidden></div>
+            </div>
+          </div>
+        </section>
+      </section>
+      <section id="panel-messages" class="panel active">
+        <section class="card messages-card compact-dashboard">
+          <div class="compact-head">
+            <div><h2>Recent Messages</h2></div>
+            <button id="clear-messages-full" class="btn danger" type="button" title="Erase the locally stored message history in the extension.">Clear History</button>
+          </div>
+          <div class="messages" id="messages-full"></div>
+        </section>
+      </section>
+    </div>
     <div id="popup-toast" class="popup-toast" aria-live="polite"></div>
-
+    <script src="per-website-button-clicking-mechanics/selector-settings.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

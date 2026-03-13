@@ -2,19 +2,33 @@ const DEFAULT_SETTINGS = {
   host: "127.0.0.1",
   port: 38243,
   path: "/messages",
+  connectorEnabled: true,
   autoSend: true,
   singleTabBindingMode: true
 };
 
 const DEFAULT_PASSWORD = "befc3aa14cc05e56011865df1c49d16ef9100a53d9bfa02be8d4ffd386324f65";
 const MIN_CONNECTOR_PASSWORD_LEN = 64;
+const STATUS_DEFAULT = {
+  lastPollAt: null,
+  lastSuccessAt: null,
+  lastError: null,
+  connected: false,
+  lastKeepaliveAt: null
+};
+const shared = window.AivoRelaySelectorShared;
+const isTabView = new URLSearchParams(window.location.search).get("isTab") === "true";
 
 const portInput = document.getElementById("port");
 const autoSendInput = document.getElementById("auto-send");
+const autoSendStateEl = document.getElementById("auto-send-state");
+const connectorEnabledInput = document.getElementById("connector-enabled");
+const connectorEnabledStateEl = document.getElementById("connector-enabled-state");
 const singleTabModeInput = document.getElementById("single-tab-mode");
+const singleTabStateEl = document.getElementById("single-tab-state");
 const serverUrlEl = document.getElementById("server-url");
 const statusEl = document.getElementById("status");
-const messagesEl = document.getElementById("messages");
+const fullMessagesEl = document.getElementById("messages-full");
 const countEl = document.getElementById("message-count");
 const bindTabBtn = document.getElementById("bind-tab");
 const unbindTabBtn = document.getElementById("unbind-tab");
@@ -22,8 +36,9 @@ const unbindAllBtn = document.getElementById("unbind-all");
 const boundStatusEl = document.getElementById("bound-status");
 const boundTabsListEl = document.getElementById("bound-tabs-list");
 const keepaliveIndicatorEl = document.getElementById("keepalive-indicator");
-const clearMessagesBtn = document.getElementById("clear-messages");
+const clearMessagesFullBtn = document.getElementById("clear-messages-full");
 const passwordInput = document.getElementById("password");
+const copyPasswordBtn = document.getElementById("copy-password");
 const passwordToggleBtn = document.getElementById("password-toggle");
 const passwordSavedEl = document.getElementById("password-saved");
 const popupToastEl = document.getElementById("popup-toast");
@@ -34,8 +49,35 @@ const statusBannerTitleEl = document.getElementById("status-banner-title");
 const statusBannerHintEl = document.getElementById("status-banner-hint");
 const statusBannerIconEl = statusBannerEl?.querySelector(".status-banner-icon");
 const extensionVersionEl = document.getElementById("extension-version");
+const extensionIdEl = document.getElementById("extension-id");
+const copyExtensionIdBtn = document.getElementById("copy-extension-id");
+const openInTabBtn = document.getElementById("open-in-tab");
+const panelButtons = Array.from(document.querySelectorAll(".tab-button"));
+const panelEls = Array.from(document.querySelectorAll(".panel"));
+const siteTabsEl = document.getElementById("selector-site-tabs");
+const saveSiteSelectorsBtn = document.getElementById("save-site-selectors");
+const resetSiteSelectorsBtn = document.getElementById("reset-site-selectors");
+const selectorJsonInput = document.getElementById("selector-json");
+const selectorJsonDefaultsEl = document.getElementById("selector-json-defaults");
+const heuristicEditorInput = document.getElementById("heuristic-editor");
+const heuristicSendInput = document.getElementById("heuristic-send");
+const heuristicStopInput = document.getElementById("heuristic-stop");
+const ignoreStopInput = document.getElementById("ignore-stop");
+const heuristicEditorStateEl = document.getElementById("heuristic-editor-state");
+const heuristicSendStateEl = document.getElementById("heuristic-send-state");
+const heuristicStopStateEl = document.getElementById("heuristic-stop-state");
+const ignoreStopStateEl = document.getElementById("ignore-stop-state");
+const pickEditorBtn = document.getElementById("pick-editor");
+const pickSendBtn = document.getElementById("pick-send");
+const pickStopBtn = document.getElementById("pick-stop");
 
 let currentSettings = { ...DEFAULT_SETTINGS };
+let currentSelectorSettings = shared?.normalizeSelectorSettings(shared.DEFAULT_SELECTOR_SETTINGS) || {
+  heuristics: { editor: true, sendButton: true, stopButton: true, ignoreStopButton: false },
+  customSelectors: {}
+};
+let currentSelectorSite = shared?.SUPPORTED_SITES?.[0] || "ChatGPT";
+let currentStatus = { ...STATUS_DEFAULT };
 let currentBoundTabIds = [];
 let currentBoundTabInfos = {};
 let saveTimer = null;
@@ -43,24 +85,34 @@ let passwordSaveTimer = null;
 let passwordInvalidToastTimer = null;
 let refreshInterval = null;
 let popupToastHideTimer = null;
+let resetSelectorsUndoTimer = null;
+let pendingSelectorUndo = null;
 const attachmentPreviewCache = new Map();
 
 init();
 
 async function init() {
+  if (isTabView) {
+    document.documentElement.classList.add("tab-mode");
+    document.body.classList.add("tab-mode");
+    if (openInTabBtn) openInTabBtn.hidden = true;
+  }
+
   renderExtensionVersion();
+  renderExtensionIdentity();
+  renderMainTabs();
+  renderSiteTabs();
   await loadState();
   await loadPassword();
   chrome.storage.onChanged.addListener(handleStorageChange);
   portInput.addEventListener("input", handlePortInput);
   autoSendInput.addEventListener("change", handleAutoSendChange);
+  connectorEnabledInput?.addEventListener("change", handleConnectorEnabledChange);
   if (singleTabModeInput) {
     singleTabModeInput.addEventListener("change", handleSingleTabModeChange);
   }
   bindTabBtn.addEventListener("click", handleBindTab);
-  if (clearMessagesBtn) {
-    clearMessagesBtn.addEventListener("click", handleClearMessages);
-  }
+  clearMessagesFullBtn?.addEventListener("click", handleClearMessages);
   if (unbindTabBtn) {
     unbindTabBtn.addEventListener("click", handleUnbindTab);
   }
@@ -73,6 +125,31 @@ async function init() {
   if (passwordToggleBtn) {
     passwordToggleBtn.addEventListener("click", handlePasswordToggle);
   }
+  copyPasswordBtn?.addEventListener("click", () => void handleCopyPassword());
+  openInTabBtn?.addEventListener("click", handleOpenInTab);
+  copyExtensionIdBtn?.addEventListener("click", () => void handleCopyExtensionId());
+  saveSiteSelectorsBtn?.addEventListener("click", () => void handleSaveSiteSelectors());
+  resetSiteSelectorsBtn?.addEventListener("click", () => void handleResetSiteSelectors());
+  selectorJsonInput?.addEventListener("input", () => autoResizeTextarea(selectorJsonInput));
+  heuristicEditorInput?.addEventListener("change", () => void updateSelectorSettings({
+    ...currentSelectorSettings,
+    heuristics: { ...currentSelectorSettings.heuristics, editor: heuristicEditorInput.checked }
+  }, "Editor auto-find updated."));
+  heuristicSendInput?.addEventListener("change", () => void updateSelectorSettings({
+    ...currentSelectorSettings,
+    heuristics: { ...currentSelectorSettings.heuristics, sendButton: heuristicSendInput.checked }
+  }, "Send auto-find updated."));
+  heuristicStopInput?.addEventListener("change", () => void updateSelectorSettings({
+    ...currentSelectorSettings,
+    heuristics: { ...currentSelectorSettings.heuristics, stopButton: heuristicStopInput.checked }
+  }, "Stop auto-find updated."));
+  ignoreStopInput?.addEventListener("change", () => void updateSelectorSettings({
+    ...currentSelectorSettings,
+    heuristics: { ...currentSelectorSettings.heuristics, ignoreStopButton: ignoreStopInput.checked }
+  }, ignoreStopInput.checked ? "Stop button will now be ignored." : "Stop button checks restored."));
+  pickEditorBtn?.addEventListener("click", () => void startManualPick("editor"));
+  pickSendBtn?.addEventListener("click", () => void startManualPick("sendButton"));
+  pickStopBtn?.addEventListener("click", () => void startManualPick("stopButton"));
 
   refreshInterval = setInterval(updateTimedUI, 1000);
 
@@ -88,6 +165,73 @@ function renderExtensionVersion() {
   } catch {
     extensionVersionEl.textContent = "";
   }
+}
+
+function renderExtensionIdentity() {
+  if (!extensionIdEl) return;
+
+  try {
+    const extensionId = chrome?.runtime?.id || "";
+    extensionIdEl.textContent = extensionId ? `chrome-extension://${extensionId}` : "";
+  } catch {
+    extensionIdEl.textContent = "";
+  }
+}
+
+async function handleCopyExtensionId() {
+  const extensionOrigin = extensionIdEl?.textContent?.trim()
+    || (chrome?.runtime?.id ? `chrome-extension://${chrome.runtime.id}` : "");
+  if (!extensionOrigin) {
+    showPopupToast("CORS origin is unavailable right now.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(extensionOrigin);
+    showPopupToast("CORS origin copied. Paste it into AivoRelay exactly as shown.");
+  } catch {
+    showPopupToast("Could not copy the CORS origin. Copy it manually from Settings.");
+  }
+}
+
+async function handleCopyPassword() {
+  const password = (passwordInput?.value || "").trim();
+  if (!password) {
+    showPopupToast("Password is unavailable right now.");
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(password);
+    showPopupToast("Connector password copied.");
+  } catch {
+    showPopupToast("Could not copy the password. Copy it manually from Settings.");
+  }
+}
+
+function renderMainTabs() {
+  panelButtons.forEach((button) => {
+    button.addEventListener("click", () => setActivePanel(button.dataset.panel || "settings"));
+  });
+  const requestedPanel = new URLSearchParams(window.location.search).get("panel");
+  const validPanels = new Set(panelButtons.map((button) => button.dataset.panel).filter(Boolean));
+  const fallbackPanel = isTabView ? "settings" : "messages";
+  setActivePanel(validPanels.has(requestedPanel) ? requestedPanel : fallbackPanel);
+}
+
+function setActivePanel(panelName) {
+  panelButtons.forEach((button) => button.classList.toggle("active", button.dataset.panel === panelName));
+  panelEls.forEach((panel) => panel.classList.toggle("active", panel.id === `panel-${panelName}`));
+  if (panelName === "selectors") {
+    requestAnimationFrame(() => autoResizeTextarea(selectorJsonInput));
+  }
+}
+
+function handleOpenInTab() {
+  const activePanel = panelButtons.find((button) => button.classList.contains("active"))?.dataset.panel || "settings";
+  chrome.tabs.create({
+    url: `${chrome.runtime.getURL("popup.html")}?isTab=true&panel=${encodeURIComponent(activePanel)}`
+  });
 }
 
 async function loadPassword() {
@@ -194,29 +338,27 @@ function handlePasswordToggle() {
 }
 
 async function loadState() {
-  const { settings, messages, status, boundTabIds, boundTabInfos } = await chrome.storage.local.get({
+  const { settings, selectorSettings, messages, status, boundTabIds, boundTabInfos } = await chrome.storage.local.get({
     settings: DEFAULT_SETTINGS,
+    selectorSettings: shared?.DEFAULT_SELECTOR_SETTINGS,
     messages: [],
-    status: {
-      lastPollAt: null,
-      lastSuccessAt: null,
-      lastError: null,
-      connected: false,
-      lastKeepaliveAt: null
-    },
+    status: STATUS_DEFAULT,
     boundTabIds: [],
     boundTabInfos: {}
   });
 
   currentSettings = { ...DEFAULT_SETTINGS, ...settings };
+  currentSelectorSettings = shared?.normalizeSelectorSettings(selectorSettings) || currentSelectorSettings;
+  currentStatus = status && typeof status === "object" ? { ...STATUS_DEFAULT, ...status } : { ...STATUS_DEFAULT };
   currentBoundTabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
   currentBoundTabInfos = boundTabInfos && typeof boundTabInfos === "object" ? boundTabInfos : {};
   renderSettings();
-  renderStatus(status);
+  renderSelectorSettings();
+  renderStatus(currentStatus);
   renderMessages(messages);
   renderBoundStatus(currentBoundTabIds, currentBoundTabInfos);
-  updateKeepaliveIndicator(status.lastKeepaliveAt);
-  updateStatusBanner(status, currentBoundTabIds);
+  updateKeepaliveIndicator(currentStatus);
+  updateStatusBanner(currentStatus, currentBoundTabIds);
 }
 
 function handleStorageChange(changes, area) {
@@ -228,11 +370,22 @@ function handleStorageChange(changes, area) {
   if (changes.settings) {
     currentSettings = { ...DEFAULT_SETTINGS, ...changes.settings.newValue };
     renderSettings();
+    updateKeepaliveIndicator(currentStatus);
+    updateStatusBanner(currentStatus, currentBoundTabIds);
+    renderStatus(currentStatus);
+  }
+
+  if (changes.selectorSettings) {
+    currentSelectorSettings = shared?.normalizeSelectorSettings(changes.selectorSettings.newValue) || currentSelectorSettings;
+    renderSelectorSettings();
   }
 
   if (changes.status) {
-    renderStatus(changes.status.newValue);
-    updateKeepaliveIndicator(changes.status.newValue?.lastKeepaliveAt);
+    currentStatus = changes.status.newValue && typeof changes.status.newValue === "object"
+      ? { ...STATUS_DEFAULT, ...changes.status.newValue }
+      : { ...STATUS_DEFAULT };
+    renderStatus(currentStatus);
+    updateKeepaliveIndicator(currentStatus);
     statusChanged = true;
   }
 
@@ -257,9 +410,7 @@ function handleStorageChange(changes, area) {
   }
 
   if (statusChanged || boundChanged) {
-    chrome.storage.local.get("status").then(({ status }) => {
-      updateStatusBanner(status, currentBoundTabIds);
-    });
+    updateStatusBanner(currentStatus, currentBoundTabIds);
   }
 }
 
@@ -316,10 +467,22 @@ async function handleClearMessages() {
 function renderBoundStatus(boundTabIds, boundTabInfos) {
   const tabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
   const tabInfos = boundTabInfos && typeof boundTabInfos === "object" ? boundTabInfos : {};
+  const connectorEnabled = currentSettings.connectorEnabled !== false;
 
   // Update unbind buttons state
-  if (unbindTabBtn) unbindTabBtn.disabled = tabIds.length === 0;
-  if (unbindAllBtn) unbindAllBtn.disabled = tabIds.length === 0;
+  if (bindTabBtn) bindTabBtn.disabled = !connectorEnabled;
+  if (unbindTabBtn) unbindTabBtn.disabled = !connectorEnabled || tabIds.length === 0;
+  if (unbindAllBtn) unbindAllBtn.disabled = !connectorEnabled || tabIds.length === 0;
+
+  if (!connectorEnabled) {
+    boundStatusEl.textContent = "Connector OFF";
+    boundStatusEl.title = "";
+    if (boundTabsListEl) {
+      boundTabsListEl.style.display = "none";
+      boundTabsListEl.innerHTML = "";
+    }
+    return;
+  }
 
   // Update summary text
   if (tabIds.length === 0) {
@@ -339,26 +502,26 @@ function renderBoundStatus(boundTabIds, boundTabInfos) {
   if (boundTabsListEl) {
     boundTabsListEl.innerHTML = "";
 
-    if (tabIds.length === 0) {
+    if (tabIds.length <= 1) {
       boundTabsListEl.style.display = "none";
       return;
     }
 
-    boundTabsListEl.style.display = "block";
+    boundTabsListEl.style.display = "grid";
 
     for (const tabId of tabIds) {
       const info = tabInfos[tabId];
       const item = document.createElement("div");
-      item.className = "bound-tab-item";
+      item.className = "bound-item";
 
       const label = document.createElement("span");
-      label.className = "bound-tab-label";
+      label.className = "bound-label";
       label.textContent = info ? formatBoundTabLabel(info) : `Tab ${tabId}`;
       label.title = info?.url || "";
 
       const unbindBtn = document.createElement("button");
       unbindBtn.type = "button";
-      unbindBtn.className = "btn-unbind-single";
+      unbindBtn.className = "unbind-one";
       unbindBtn.textContent = "×";
       unbindBtn.title = "Unbind this tab";
       unbindBtn.addEventListener("click", () => handleUnbindSingleTab(tabId));
@@ -389,14 +552,28 @@ function extractHostname(url) {
 }
 
 function updateTimedUI() {
-  chrome.storage.local.get("status").then(({ status }) => {
-    updateKeepaliveIndicator(status?.lastKeepaliveAt);
-  });
+  updateKeepaliveIndicator(currentStatus);
 }
 
-function updateKeepaliveIndicator(lastKeepaliveAt) {
+function updateKeepaliveIndicator(status) {
+  if (!keepaliveIndicatorEl) return;
+
+  keepaliveIndicatorEl.classList.remove("active", "error");
+
+  if (currentSettings.connectorEnabled === false) {
+    keepaliveIndicatorEl.title = "Connector OFF";
+    return;
+  }
+
+  if (status?.lastError) {
+    keepaliveIndicatorEl.classList.add("error");
+    keepaliveIndicatorEl.title = `Connection failed: ${status.lastError}`;
+    return;
+  }
+
+  const lastKeepaliveAt = status?.lastKeepaliveAt;
   if (!lastKeepaliveAt) {
-    keepaliveIndicatorEl.classList.remove("active");
+    keepaliveIndicatorEl.classList.add("error");
     keepaliveIndicatorEl.title = "No keepalive received";
     return;
   }
@@ -404,12 +581,11 @@ function updateKeepaliveIndicator(lastKeepaliveAt) {
   const now = Date.now();
   const diff = now - lastKeepaliveAt;
 
-  // Green if received in the last 30 seconds
   if (diff < 30000) {
     keepaliveIndicatorEl.classList.add("active");
     keepaliveIndicatorEl.title = `Last keepalive: ${formatTime(lastKeepaliveAt)}`;
   } else {
-    keepaliveIndicatorEl.classList.remove("active");
+    keepaliveIndicatorEl.classList.add("error");
     keepaliveIndicatorEl.title = `Keepalive stale - Last: ${formatTime(lastKeepaliveAt)}`;
   }
 }
@@ -429,6 +605,10 @@ function handleAutoSendChange() {
   scheduleSave({ ...currentSettings, autoSend: autoSendInput.checked });
 }
 
+function handleConnectorEnabledChange() {
+  scheduleSave({ ...currentSettings, connectorEnabled: connectorEnabledInput.checked });
+}
+
 function scheduleSave(nextSettings) {
   currentSettings = nextSettings;
   renderSettings();
@@ -436,10 +616,12 @@ function scheduleSave(nextSettings) {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(async () => {
     await chrome.storage.local.set({ settings: currentSettings });
-    try {
-      chrome.runtime.sendMessage({ type: "POLL_NOW" });
-    } catch {
-      // Ignore background startup timing.
+    if (currentSettings.connectorEnabled !== false) {
+      try {
+        chrome.runtime.sendMessage({ type: "POLL_NOW" });
+      } catch {
+        // Ignore background startup timing.
+      }
     }
   }, 300);
 }
@@ -448,14 +630,194 @@ function renderSettings() {
   if (document.activeElement !== portInput) {
     portInput.value = currentSettings.port ?? DEFAULT_SETTINGS.port;
   }
+  if (connectorEnabledInput) {
+    connectorEnabledInput.checked = currentSettings.connectorEnabled !== false;
+    if (connectorEnabledStateEl) {
+      connectorEnabledStateEl.textContent = connectorEnabledInput.checked ? "On" : "OFF";
+    }
+  }
   autoSendInput.checked = currentSettings.autoSend !== false;
+  if (autoSendStateEl) {
+    autoSendStateEl.textContent = autoSendInput.checked ? "On" : "Off";
+  }
   if (singleTabModeInput) {
     singleTabModeInput.checked = currentSettings.singleTabBindingMode !== false;
+    if (singleTabStateEl) {
+      singleTabStateEl.textContent = singleTabModeInput.checked ? "On" : "Off";
+    }
   }
   serverUrlEl.textContent = `http://${currentSettings.host}:${currentSettings.port}`;
 }
 
+function renderSelectorSettings() {
+  if (!shared) return;
+  heuristicEditorInput.checked = currentSelectorSettings.heuristics.editor !== false;
+  heuristicSendInput.checked = currentSelectorSettings.heuristics.sendButton !== false;
+  heuristicStopInput.checked = currentSelectorSettings.heuristics.stopButton !== false;
+  if (ignoreStopInput) {
+    ignoreStopInput.checked = currentSelectorSettings.heuristics.ignoreStopButton === true;
+  }
+  heuristicEditorStateEl.textContent = heuristicEditorInput.checked ? "On" : "Off";
+  heuristicSendStateEl.textContent = heuristicSendInput.checked ? "On" : "Off";
+  heuristicStopStateEl.textContent = heuristicStopInput.checked ? "On" : "Off";
+  if (ignoreStopStateEl) {
+    ignoreStopStateEl.textContent = ignoreStopInput?.checked ? "On" : "Off";
+  }
+  renderSiteTabs();
+  renderSelectorEditors();
+}
+
+function renderSiteTabs() {
+  if (!shared || !siteTabsEl) return;
+  siteTabsEl.innerHTML = "";
+  for (const site of shared.SUPPORTED_SITES) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = `site-tab ${site === currentSelectorSite ? "active" : ""}`;
+    button.textContent = shared.SITE_LABELS[site] || site;
+    button.title = `Edit selectors for ${shared.SITE_LABELS[site] || site}`;
+    button.addEventListener("click", () => {
+      currentSelectorSite = site;
+      renderSiteTabs();
+      renderSelectorEditors();
+      renderResetSelectorsButton();
+    });
+    siteTabsEl.appendChild(button);
+  }
+}
+
+function renderSelectorEditors() {
+  if (!shared || !selectorJsonInput || !selectorJsonDefaultsEl) return;
+  const hasCustomSelectors = Boolean(currentSelectorSettings.customSelectors[currentSelectorSite]);
+  const custom = currentSelectorSettings.customSelectors[currentSelectorSite] || shared.normalizeSiteSelectors({});
+  const defaults = shared.getDefaultSiteSelectors(currentSelectorSite);
+  const shownSelectors = hasCustomSelectors ? custom : defaults;
+
+  selectorJsonInput.value = shared.siteSelectorsToJsonTextarea(shownSelectors);
+  selectorJsonInput.placeholder = "";
+  selectorJsonDefaultsEl.textContent = "";
+  selectorJsonDefaultsEl.hidden = true;
+  requestAnimationFrame(() => autoResizeTextarea(selectorJsonInput));
+  renderResetSelectorsButton();
+}
+
+function autoResizeTextarea(textarea) {
+  if (!textarea) return;
+  textarea.style.height = "auto";
+  textarea.style.height = `${Math.max(textarea.scrollHeight, 116)}px`;
+}
+
+function renderResetSelectorsButton() {
+  if (!resetSiteSelectorsBtn || !shared) return;
+
+  const isUndoActive = pendingSelectorUndo?.site === currentSelectorSite;
+  if (isUndoActive) {
+    resetSiteSelectorsBtn.textContent = "Undo";
+    resetSiteSelectorsBtn.title = "Restore the selectors that were just removed for this site.";
+    return;
+  }
+
+  resetSiteSelectorsBtn.textContent = "Reset selectors for this site";
+  resetSiteSelectorsBtn.title = "Remove only the custom selectors for the selected site and fall back to defaults again.";
+}
+
+function clearPendingSelectorUndo() {
+  if (resetSelectorsUndoTimer) {
+    clearTimeout(resetSelectorsUndoTimer);
+    resetSelectorsUndoTimer = null;
+  }
+  pendingSelectorUndo = null;
+  renderResetSelectorsButton();
+}
+
+async function updateSelectorSettings(nextSettings, successMessage = "") {
+  if (!shared) return;
+  currentSelectorSettings = shared.normalizeSelectorSettings(nextSettings);
+  await chrome.storage.local.set({ selectorSettings: currentSelectorSettings });
+  renderSelectorSettings();
+  if (successMessage) showPopupToast(successMessage);
+}
+
+async function handleSaveSiteSelectors() {
+  if (!shared || !selectorJsonInput) return;
+  clearPendingSelectorUndo();
+  const parsed = shared.parseSiteSelectorsJson(selectorJsonInput.value);
+  if (!parsed.ok) {
+    showPopupToast(`Selectors JSON is invalid: ${parsed.error}`);
+    return;
+  }
+  await updateSelectorSettings({
+    ...currentSelectorSettings,
+    customSelectors: {
+      ...currentSelectorSettings.customSelectors,
+      [currentSelectorSite]: parsed.value
+    }
+  }, `${shared.SITE_LABELS[currentSelectorSite] || currentSelectorSite} selectors saved.`);
+}
+
+async function handleResetSiteSelectors() {
+  if (!shared) return;
+  if (pendingSelectorUndo?.site === currentSelectorSite) {
+    const customSelectors = { ...currentSelectorSettings.customSelectors };
+    if (pendingSelectorUndo.previousSelectors) {
+      customSelectors[currentSelectorSite] = pendingSelectorUndo.previousSelectors;
+    } else {
+      delete customSelectors[currentSelectorSite];
+    }
+    clearPendingSelectorUndo();
+    await updateSelectorSettings({
+      ...currentSelectorSettings,
+      customSelectors
+    }, `${shared.SITE_LABELS[currentSelectorSite] || currentSelectorSite} selectors restored.`);
+    return;
+  }
+
+  const previousSelectors = currentSelectorSettings.customSelectors[currentSelectorSite]
+    ? shared.normalizeSiteSelectors(currentSelectorSettings.customSelectors[currentSelectorSite])
+    : null;
+  const customSelectors = { ...currentSelectorSettings.customSelectors };
+  delete customSelectors[currentSelectorSite];
+  await updateSelectorSettings({
+    ...currentSelectorSettings,
+    customSelectors
+  }, `${shared.SITE_LABELS[currentSelectorSite] || currentSelectorSite} now uses built-in defaults. Undo is available for 5 seconds.`);
+
+  pendingSelectorUndo = {
+    site: currentSelectorSite,
+    previousSelectors
+  };
+  renderResetSelectorsButton();
+  resetSelectorsUndoTimer = setTimeout(() => {
+    clearPendingSelectorUndo();
+  }, 5000);
+}
+
+async function startManualPick(target) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    showPopupToast("No active tab found for manual pick.");
+    return;
+  }
+
+  try {
+    const response = await chrome.tabs.sendMessage(tab.id, { type: "START_MANUAL_PICK", target });
+    if (!response?.ok) {
+      showPopupToast("Manual pick could not start on this tab. Open a supported AI page first.");
+      return;
+    }
+    showPopupToast("Manual pick started on the active tab.");
+  } catch {
+    showPopupToast("Manual pick could not reach the page. Open ChatGPT, Claude, Gemini, Grok, AI Studio, or Perplexity first.");
+  }
+}
+
 function renderStatus(status) {
+  if (currentSettings.connectorEnabled === false) {
+    statusEl.textContent = "Connector OFF";
+    statusEl.classList.remove("error");
+    return;
+  }
+
   if (!status) {
     statusEl.textContent = "Waiting for first check...";
     statusEl.classList.remove("error");
@@ -496,10 +858,6 @@ function renderStatus(status) {
 function updateStatusBanner(status, boundTabIds) {
   if (!statusBannerEl) return;
 
-  const isConnected = status?.connected && !status?.lastError;
-  const tabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
-  const isBound = tabIds.length > 0;
-
   // SVG icons for different states
   const disconnectedIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="12" cy="12" r="10"></circle>
@@ -518,7 +876,22 @@ function updateStatusBanner(status, boundTabIds) {
     <polyline points="22 4 12 14.01 9 11.01"></polyline>
   </svg>`;
 
-  statusBannerEl.classList.remove("disconnected", "connected-unbound", "ready");
+  if (currentSettings.connectorEnabled === false) {
+    statusBannerEl.classList.remove("off", "disconnected", "connected-unbound", "ready");
+    statusBannerEl.classList.add("off");
+    if (statusBannerIconEl) statusBannerIconEl.innerHTML = disconnectedIcon;
+    if (statusBannerTitleEl) statusBannerTitleEl.textContent = "Connector OFF";
+    if (statusBannerHintEl) {
+      statusBannerHintEl.textContent = "Turn Connector enabled back on in Settings when you want this extension to reconnect.";
+    }
+    return;
+  }
+
+  const isConnected = status?.connected && !status?.lastError;
+  const tabIds = Array.isArray(boundTabIds) ? boundTabIds : [];
+  const isBound = tabIds.length > 0;
+
+  statusBannerEl.classList.remove("off", "disconnected", "connected-unbound", "ready");
 
   if (!isConnected) {
     // Disconnected state
@@ -538,7 +911,7 @@ function updateStatusBanner(status, boundTabIds) {
     if (statusBannerIconEl) statusBannerIconEl.innerHTML = warningIcon;
     if (statusBannerTitleEl) statusBannerTitleEl.textContent = "Connected - No Tab Bound";
     if (statusBannerHintEl) {
-      statusBannerHintEl.textContent = "Bind a tab manually, or AivoRelay may auto-open one if configured.";
+      statusBannerHintEl.textContent = "Bind a tab manually, or let AivoRelay auto-open a fresh target tab when its auto-open setting is enabled.";
     }
   } else {
     // Fully ready
@@ -553,6 +926,9 @@ function updateStatusBanner(status, boundTabIds) {
 }
 
 async function requestConnect() {
+  if (currentSettings.connectorEnabled === false) {
+    return;
+  }
   try {
     await chrome.runtime.sendMessage({ type: "POLL_NOW" });
   } catch {
@@ -563,63 +939,90 @@ async function requestConnect() {
 function renderMessages(messages) {
   const list = Array.isArray(messages) ? messages : [];
   countEl.textContent = String(list.length);
-  messagesEl.textContent = "";
-  if (clearMessagesBtn) clearMessagesBtn.disabled = list.length === 0;
+  [clearMessagesFullBtn].forEach((button) => {
+    if (button) button.disabled = list.length === 0;
+  });
 
-  if (!list.length) {
+  renderMessagesInto(fullMessagesEl, list, {
+    limit: Infinity,
+    emptyText: "No messages yet.",
+    showPreviewHint: false
+  });
+}
+
+function renderMessagesInto(container, messages, options = {}) {
+  if (!container) return;
+
+  const { limit = Infinity, emptyText = "No messages yet.", showPreviewHint = false } = options;
+  container.textContent = "";
+
+  if (!messages.length) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "No messages yet.";
-    messagesEl.appendChild(empty);
+    empty.textContent = emptyText;
+    container.appendChild(empty);
     return;
   }
 
   const fragment = document.createDocumentFragment();
-  const ordered = [...list].reverse();
+  const ordered = [...messages].reverse().slice(0, limit);
 
   for (const message of ordered) {
-    const card = document.createElement("div");
-    card.className = "message";
-
-    const time = document.createElement("div");
-    time.className = "message-time";
-    const timeText = Number.isFinite(message.ts)
-      ? formatTime(message.ts)
-      : "Just now";
-    const boundLabel = message.wasBound === true ? "Bound" : message.wasBound === false ? "Unbound" : "";
-    time.textContent = boundLabel ? `${timeText} · ${boundLabel}` : timeText;
-
-    const statusLine = buildMessageStatusLine(message);
-    const statusEl = document.createElement("div");
-    statusEl.className = "message-status";
-    statusEl.textContent = statusLine || "";
-    if (!statusLine) {
-      statusEl.style.display = "none";
-    }
-    const errorSummary = summarizeAttachmentErrors(message.errors);
-    const deliveryDetail = message.deliveryDetail ? String(message.deliveryDetail) : "";
-    if (errorSummary || deliveryDetail) {
-      statusEl.title = [errorSummary, deliveryDetail].filter(Boolean).join(" | ");
-    }
-
-    const text = document.createElement("div");
-    text.className = "message-text";
-    text.textContent = formatMessageText(message);
-
-    const attachmentsEl = buildAttachmentList(message);
-    const actionsEl = buildMessageActions(message);
-
-    card.append(time, statusEl, text);
-    if (attachmentsEl) {
-      card.appendChild(attachmentsEl);
-    }
-    if (actionsEl) {
-      card.appendChild(actionsEl);
-    }
+    const card = buildMessageCard(message);
     fragment.appendChild(card);
   }
 
-  messagesEl.appendChild(fragment);
+  if (showPreviewHint) {
+    const more = document.createElement("div");
+    more.className = "empty";
+    more.textContent = `Showing the latest ${ordered.length} messages here. Open Full History for everything.`;
+    fragment.appendChild(more);
+  }
+
+  container.appendChild(fragment);
+}
+
+function buildMessageCard(message) {
+  const card = document.createElement("div");
+  card.className = "message";
+
+  const time = document.createElement("div");
+  time.className = "message-time";
+  const timeText = Number.isFinite(message.ts)
+    ? formatTime(message.ts)
+    : "Just now";
+  const boundLabel = message.wasBound === true ? "Bound" : message.wasBound === false ? "Unbound" : "";
+  time.textContent = boundLabel ? `${timeText} · ${boundLabel}` : timeText;
+
+  const statusLine = buildMessageStatusLine(message);
+  const statusLineEl = document.createElement("div");
+  statusLineEl.className = "message-status";
+  statusLineEl.textContent = statusLine || "";
+  if (!statusLine) {
+    statusLineEl.style.display = "none";
+  }
+  const errorSummary = summarizeAttachmentErrors(message.errors);
+  const deliveryDetail = message.deliveryDetail ? String(message.deliveryDetail) : "";
+  if (errorSummary || deliveryDetail) {
+    statusLineEl.title = [errorSummary, deliveryDetail].filter(Boolean).join(" | ");
+  }
+
+  const text = document.createElement("div");
+  text.className = "message-text";
+  text.textContent = formatMessageText(message);
+
+  const attachmentsEl = buildAttachmentList(message);
+  const actionsEl = buildMessageActions(message);
+
+  card.append(time, statusLineEl, text);
+  if (attachmentsEl) {
+    card.appendChild(attachmentsEl);
+  }
+  if (actionsEl) {
+    card.appendChild(actionsEl);
+  }
+
+  return card;
 }
 
 function buildMessageStatusLine(message) {
@@ -713,14 +1116,14 @@ function summarizeAttachmentErrors(errors) {
 }
 
 function buildMessageActions(message) {
-  if (!shouldShowRetry(message)) return null;
   const actions = document.createElement("div");
   actions.className = "message-actions";
 
   const retryBtn = document.createElement("button");
   retryBtn.type = "button";
   retryBtn.className = "retry-btn";
-  retryBtn.textContent = "Retry";
+  retryBtn.textContent = "Resend";
+  retryBtn.title = "Send this stored message again";
   retryBtn.addEventListener("click", () => {
     void requestRetryMessage(message.id);
   });
@@ -729,29 +1132,13 @@ function buildMessageActions(message) {
   return actions;
 }
 
-function shouldShowRetry(message) {
-  if (!message) return false;
-  if (message.status === "error") return true;
-  const retryable = new Set([
-    "send_not_found",
-    "editor_not_found",
-    "insert_failed",
-    "dropped_busy",
-    "send_failed",
-    "attachment_failed",
-    "bundle_error",
-    "bundle_failed",
-    "unbound"
-  ]);
-  return retryable.has(message.deliveryStatus);
-}
-
 async function requestRetryMessage(messageId) {
   if (!messageId) return;
   try {
-    await chrome.runtime.sendMessage({ type: "RETRY_MESSAGE", id: messageId });
+    await chrome.runtime.sendMessage({ type: "RESEND_MESSAGE", id: messageId });
+    showPopupToast("Message queued for resend.");
   } catch (err) {
-    console.error("Failed to request retry", err);
+    console.error("Failed to request resend", err);
   }
 }
 

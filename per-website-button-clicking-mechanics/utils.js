@@ -68,107 +68,15 @@ class InjectionTargetsOnWebsite {
   }
 
   getDefaultSelectors(site) {
-    const selectors = {
-      ChatGPT: {
-        sendButtons: [
-          "button[aria-label=\"Send message\"]",
-          "button[data-testid=\"send-button\"]",
-          "button[type=\"submit\"]"
-        ],
-        editors: [
-          "div.ProseMirror#prompt-textarea[contenteditable=\"true\"]",
-          "div.ProseMirror[contenteditable=\"true\"]",
-          "div[contenteditable=\"true\"].ProseMirror",
-          "div.ProseMirror",
-          "textarea"
-        ],
-        stopButtons: [
-          "button[data-testid=\"stop-button\"]",
-          "button[aria-label=\"Stop generating\"]"
-        ]
-      },
-      Perplexity: {
-        sendButtons: [
-          "button[data-testid=\"submit-button\"][aria-label=\"Submit\"]",
-          "button[data-testid=\"submit-button\"]",
-          "button[type=\"button\"][aria-label=\"Submit\"]",
-          "button[aria-label=\"Submit\"]"
-        ],
-        editors: [
-          "div#ask-input[contenteditable=\"true\"]",
-          "div[contenteditable=\"true\"][data-lexical-editor=\"true\"]",
-          "div[contenteditable=\"true\"]"
-        ],
-        stopButtons: [
-          "button[aria-label=\"Stop\"]",
-          "button[data-testid=\"stop-button\"]"
-        ]
-      },
-      Gemini: {
-        sendButtons: [
-          "button[aria-label=\"Send message\"]",
-          "button[data-testid=\"send-button\"]",
-          "div.send-button-container button"
-        ],
-        editors: [
-          "div[contenteditable=\"true\"].ql-editor",
-          "div[contenteditable=\"true\"]",
-          ".ql-editor"
-        ],
-        stopButtons: [
-          "button[aria-label=\"Stop generating\"]",
-          "button[data-testid=\"stop-button\"]"
-        ]
-      },
-      Claude: {
-        sendButtons: [
-          "button[aria-label=\"Send Message\"]",
-          "button[aria-label=\"Send message\"]",
-          "fieldset button[type=\"button\"]"
-        ],
-        editors: [
-          "div.ProseMirror[contenteditable=\"true\"]",
-          "div[contenteditable=\"true\"].ProseMirror",
-          "div[contenteditable=\"true\"]"
-        ],
-        stopButtons: [
-          "button[aria-label=\"Stop Response\"]",
-          "button[aria-label=\"Stop response\"]"
-        ]
-      },
-      Grok: {
-        sendButtons: [
-          "button[aria-label=\"Submit\"]",
-          "button[type=\"submit\"]"
-        ],
-        editors: [
-          "textarea[placeholder*=\"Ask\"]",
-          "textarea",
-          "div[contenteditable=\"true\"]"
-        ],
-        stopButtons: [
-          "button[aria-label=\"Stop\"]",
-          "button[aria-label=\"Stop generating\"]"
-        ]
-      },
-      AIStudio: {
-        sendButtons: [
-          "button[aria-label=\"Run\"]",
-          "button[mattooltip=\"Run\"]",
-          "button.run-button"
-        ],
-        editors: [
-          "textarea.prompt-textarea",
-          "textarea[aria-label*=\"prompt\"]",
-          "textarea"
-        ],
-        stopButtons: [
-          "button[aria-label=\"Stop\"]"
-        ]
-      }
+    const defaults = window.AivoRelaySelectorShared?.getDefaultSiteSelectors(site);
+    return defaults || {
+      containers: [],
+      sendButtons: [],
+      editors: [],
+      stopButtons: [],
+      threadRoot: '',
+      buttonsContainerId: ''
     };
-    const defaults = selectors[site];
-    return defaults ? defaults : { sendButtons: [], editors: [], stopButtons: [] };
   }
 }
 

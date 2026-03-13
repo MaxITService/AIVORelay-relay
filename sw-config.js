@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS = {
   path: "/messages",
   pollMinutes: 1, // Reduced frequency - long-poll handles real-time delivery
   timeoutMs: 3000, // Legacy timeout for non-long-poll requests
+  connectorEnabled: true,
   autoSend: true,
   maxStoredMessages: 50,
   singleTabBindingMode: true

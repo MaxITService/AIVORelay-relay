@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AivoRelay",
   "description": "A relay connector for AI interfaces",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "icons": {
     "16": "aivo_icon_16x16.png",
     "32": "aivo_icon_32x32.png",
@@ -44,6 +44,9 @@
       "js": [
         "log.js",
         "per-website-button-clicking-mechanics/ocp_toast.js",
+        "per-website-button-clicking-mechanics/selector-settings.js",
+        "per-website-button-clicking-mechanics/selector-heuristics.js",
+        "per-website-button-clicking-mechanics/selector-manual-picker.js",
         "per-website-button-clicking-mechanics/utils.js",
         "per-website-button-clicking-mechanics/buttons-clicking-shared.js",
         "per-website-button-clicking-mechanics/buttons-clicking-chatgpt.js",

@@ -3,31 +3,53 @@
 chrome.runtime.onInstalled.addListener(async () => {
   await ensureDefaults();
   await setupAlarm(); // Keep alarm as fallback/heartbeat
+  const settings = await getSettings();
+  if (settings.connectorEnabled === false) {
+    await setConnectorDisabledState();
+    return;
+  }
   longPollLoop(); // Start long-poll loop (don't await - runs in background)
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   await ensureDefaults();
   await setupAlarm(); // Keep alarm as fallback/heartbeat
+  const settings = await getSettings();
+  if (settings.connectorEnabled === false) {
+    await setConnectorDisabledState();
+    return;
+  }
   longPollLoop(); // Start long-poll loop
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== "poll-messages") return;
-  // Fallback: restart long-poll loop if it died
-  if (!longPollActive) {
-    console.log("[aivo-relay] Alarm triggered, restarting long-poll loop");
-    longPollLoop();
-  }
-  // Also do a quick immediate poll as heartbeat
-  void pollOnce();
+  void getSettings().then((settings) => {
+    if (settings.connectorEnabled === false) {
+      stopLongPollLoop();
+      void setConnectorDisabledState();
+      return;
+    }
+    // Fallback: restart long-poll loop if it died
+    if (!longPollActive) {
+      console.log("[aivo-relay] Alarm triggered, restarting long-poll loop");
+      longPollLoop();
+    }
+    // Also do a quick immediate poll as heartbeat
+    void pollOnce();
+  });
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.settings) {
     void clearConnectorSession();
     void setupAlarm();
-    restartLongPollLoop();
+    if (changes.settings.newValue?.connectorEnabled === false) {
+      stopLongPollLoop();
+      void setConnectorDisabledState();
+    } else {
+      restartLongPollLoop();
+    }
     return;
   }
   if (area === "sync" && changes.connectorPassword) {
@@ -57,8 +79,14 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "POLL_NOW") {
-    pollOnce()
-      .then(() => sendResponse({ ok: true }))
+    getSettings()
+      .then((settings) => {
+        if (settings.connectorEnabled === false) {
+          return setConnectorDisabledState().then(() => ({ ok: true, skipped: "disabled" }));
+        }
+        return pollOnce().then(() => ({ ok: true }));
+      })
+      .then((result) => sendResponse(result))
       .catch((err) => sendResponse({ ok: false, error: err.message }));
     return true;
   }
@@ -94,7 +122,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ ok: true, tabId: sender?.tab?.id ?? null });
     return false;
   }
-  if (message?.type === "RETRY_MESSAGE") {
+  if (message?.type === "RETRY_MESSAGE" || message?.type === "RESEND_MESSAGE") {
     retryMessage(message?.id || message?.messageId)
       .then(() => sendResponse({ ok: true }))
       .catch((err) => sendResponse({ ok: false, error: err.message }));

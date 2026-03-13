@@ -3,6 +3,8 @@
 let pollInFlight = false;
 let longPollActive = false;
 let consecutiveErrors = 0;
+let longPollGeneration = 0;
+let longPollAbortController = null;
 
 /**
  * Sleep helper for delays between polls
@@ -21,37 +23,80 @@ async function longPollLoop() {
     console.log("[aivo-relay] Long-poll loop already active, skipping");
     return;
   }
+
+  const loopGeneration = ++longPollGeneration;
   longPollActive = true;
   console.log("[aivo-relay] Starting long-poll loop");
 
-  while (longPollActive) {
-    try {
-      await pollOnceWithWait(LONG_POLL_WAIT_SECONDS);
-      consecutiveErrors = 0;
-
-      // Small delay to prevent CPU spin between polls
-      await sleep(RECONNECT_DELAY_MS);
-
-    } catch (err) {
-      consecutiveErrors++;
-      const backoff = Math.min(
-        ERROR_BACKOFF_BASE_MS * Math.pow(2, consecutiveErrors - 1),
-        ERROR_BACKOFF_MAX_MS
-      );
-      console.warn(`[aivo-relay] Long-poll error (attempt ${consecutiveErrors}), retry in ${backoff}ms:`, err?.message || err);
-
-      // Show badge if persistent errors
-      if (consecutiveErrors >= 3) {
-        chrome.action.setBadgeText({ text: "!" });
-        chrome.action.setBadgeBackgroundColor({ color: "#f59e0b" }); // Amber for connectivity issues
-        chrome.action.setTitle({ title: `AivoRelay: Connection issues (${consecutiveErrors} failed attempts)\n${err?.message || err}` });
-      }
-
-      await sleep(backoff);
+  try {
+    const initialSettings = await getSettings();
+    if (loopGeneration !== longPollGeneration) {
+      return;
     }
-  }
+    if (initialSettings.connectorEnabled === false) {
+      await setConnectorDisabledState();
+      return;
+    }
 
-  console.log("[aivo-relay] Long-poll loop stopped");
+    while (longPollActive && loopGeneration === longPollGeneration) {
+      try {
+        const loopSettings = await getSettings();
+        if (loopGeneration !== longPollGeneration || !longPollActive) {
+          break;
+        }
+        if (loopSettings.connectorEnabled === false) {
+          await setConnectorDisabledState();
+          stopLongPollLoop();
+          break;
+        }
+
+        const controller = new AbortController();
+        longPollAbortController = controller;
+        try {
+          await pollOnceWithWait(LONG_POLL_WAIT_SECONDS, { signal: controller.signal });
+        } finally {
+          if (longPollAbortController === controller) {
+            longPollAbortController = null;
+          }
+        }
+        consecutiveErrors = 0;
+
+        if (loopGeneration !== longPollGeneration || !longPollActive) {
+          break;
+        }
+
+        // Small delay to prevent CPU spin between polls
+        await sleep(RECONNECT_DELAY_MS);
+
+      } catch (err) {
+        if (err?.name === "AbortError" && loopGeneration !== longPollGeneration) {
+          break;
+        }
+
+        consecutiveErrors++;
+        const backoff = Math.min(
+          ERROR_BACKOFF_BASE_MS * Math.pow(2, consecutiveErrors - 1),
+          ERROR_BACKOFF_MAX_MS
+        );
+        console.warn(`[aivo-relay] Long-poll error (attempt ${consecutiveErrors}), retry in ${backoff}ms:`, err?.message || err);
+
+        // Show badge if persistent errors
+        if (consecutiveErrors >= 3) {
+          chrome.action.setBadgeText({ text: "!" });
+          chrome.action.setBadgeBackgroundColor({ color: "#f59e0b" }); // Amber for connectivity issues
+          chrome.action.setTitle({ title: `AivoRelay: Connection issues (${consecutiveErrors} failed attempts)\n${err?.message || err}` });
+        }
+
+        await sleep(backoff);
+      }
+    }
+  } finally {
+    if (loopGeneration === longPollGeneration) {
+      longPollActive = false;
+      longPollAbortController = null;
+    }
+    console.log("[aivo-relay] Long-poll loop stopped");
+  }
 }
 
 /**
@@ -59,30 +104,40 @@ async function longPollLoop() {
  */
 function stopLongPollLoop() {
   longPollActive = false;
+  longPollGeneration += 1;
+  if (longPollAbortController) {
+    longPollAbortController.abort();
+    longPollAbortController = null;
+  }
 }
 
 /**
  * Restart the long-poll loop
  */
-async function restartLongPollLoop() {
+function restartLongPollLoop() {
   stopLongPollLoop();
-  await sleep(100); // Give time for loop to exit
-  longPollLoop(); // Don't await - runs in background
+  void longPollLoop();
 }
 
 /**
  * Poll with long-poll wait parameter
  * @param {number} waitSeconds - How long server should hold connection
  */
-async function pollOnceWithWait(waitSeconds = 0) {
+async function pollOnceWithWait(waitSeconds = 0, options = {}) {
   if (pollInFlight) return;
   pollInFlight = true;
 
-  // Use longer timeout for long-poll requests
-  const timeoutMs = waitSeconds > 0 ? LONG_POLL_TIMEOUT_MS : DEFAULT_SETTINGS.timeoutMs;
+  const signal = options?.signal || null;
+  const rethrowErrors = options?.rethrowErrors !== false;
+  let timeoutMs = waitSeconds > 0 ? LONG_POLL_TIMEOUT_MS : DEFAULT_SETTINGS.timeoutMs;
 
   try {
     const settings = await getSettings();
+    if (settings.connectorEnabled === false) {
+      await setConnectorDisabledState();
+      return;
+    }
+    timeoutMs = waitSeconds > 0 ? LONG_POLL_TIMEOUT_MS : Number(settings.timeoutMs) || DEFAULT_SETTINGS.timeoutMs;
 
     const stored = await chrome.storage.local.get({
       cursor: null,
@@ -101,7 +156,8 @@ async function pollOnceWithWait(waitSeconds = 0) {
     // Build URL with wait parameter for long-polling
     const fetchResult = await fetchTextWithTimeout(
       buildRequestUrl(settings, stored.cursor, waitSeconds),
-      timeoutMs
+      timeoutMs,
+      { signal }
     );
     const response = fetchResult.response;
 
@@ -209,22 +265,27 @@ async function pollOnceWithWait(waitSeconds = 0) {
       }
     });
   } catch (err) {
-    const errorMessage =
-      err?.name === "AbortError"
-        ? `Request timed out after ${timeoutMs}ms`
-        : err?.message || String(err);
-    const { status: previousStatus } = await chrome.storage.local.get({
-      status: STATUS_DEFAULT
-    });
-    await chrome.storage.local.set({
-      status: {
-        lastPollAt: Date.now(),
-        lastSuccessAt: previousStatus?.lastSuccessAt ?? null,
-        lastError: errorMessage,
-        connected: false
-      }
-    });
-    throw err; // Re-throw for long-poll loop error handling
+    const abortedByCaller = err?.name === "AbortError" && signal?.aborted;
+    if (!abortedByCaller) {
+      const errorMessage =
+        err?.name === "AbortError"
+          ? `Request timed out after ${timeoutMs}ms`
+          : err?.message || String(err);
+      const { status: previousStatus } = await chrome.storage.local.get({
+        status: STATUS_DEFAULT
+      });
+      await chrome.storage.local.set({
+        status: {
+          lastPollAt: Date.now(),
+          lastSuccessAt: previousStatus?.lastSuccessAt ?? null,
+          lastError: errorMessage,
+          connected: false
+        }
+      });
+    }
+    if (rethrowErrors) {
+      throw err;
+    }
   } finally {
     pollInFlight = false;
   }
@@ -235,159 +296,7 @@ async function pollOnceWithWait(waitSeconds = 0) {
  * Kept for backward compatibility and fallback scenarios
  */
 async function pollOnce() {
-  if (pollInFlight) return;
-  pollInFlight = true;
-
-  let timeoutMs = DEFAULT_SETTINGS.timeoutMs;
-  try {
-    const settings = await getSettings();
-    timeoutMs = Number(settings.timeoutMs) || DEFAULT_SETTINGS.timeoutMs;
-
-    const stored = await chrome.storage.local.get({
-      cursor: null,
-      messages: [],
-      status: STATUS_DEFAULT,
-      pendingBundles: {},
-      recentMessageIds: [],
-      boundTabIds: []
-    });
-    const boundTabIds = Array.isArray(stored.boundTabIds) ? stored.boundTabIds : [];
-
-    let messageList = Array.isArray(stored.messages) ? [...stored.messages] : [];
-    let pendingBundles = normalizePendingBundles(stored.pendingBundles);
-    let dedupeSet = new Set(Array.isArray(stored.recentMessageIds) ? stored.recentMessageIds : []);
-
-    const fetchResult = await fetchTextWithTimeout(buildRequestUrl(settings, stored.cursor), timeoutMs);
-    const response = fetchResult.response;
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        // Show red badge on extension icon for auth failure
-        chrome.action.setBadgeText({ text: "!" });
-        chrome.action.setBadgeBackgroundColor({ color: "#b42318" });
-        chrome.action.setTitle({ title: "AivoRelay: Authentication failed\nCheck that your password matches the AivoRelay app." });
-        throw new Error("Authentication failed. Check that your password matches the AivoRelay app.");
-      }
-      const bodyText = fetchResult.bodyText;
-      throw new Error(`HTTP ${response.status}: ${bodyText || "No response body"}`);
-    }
-
-    // Clear badge and reset title on successful connection
-    chrome.action.setBadgeText({ text: "" });
-    chrome.action.setTitle({ title: "AivoRelay: Connected" });
-
-    const bodyText = fetchResult.bodyText;
-    const parsed = parseMaybeJson(bodyText);
-    const parsedResponse = parseMessageResponse(parsed, bodyText);
-    const incomingMessages = normalizeIncomingMessages(parsedResponse.messages);
-
-    const keepalives = incomingMessages.filter(isKeepaliveMessage);
-    const regularMessages = incomingMessages.filter(
-      (msg) => !isKeepaliveMessage(msg) && !isStatusMessage(msg)
-    );
-
-    // Handle password update from server (two-phase commit)
-    // 1. Save the new password locally
-    // 2. Send acknowledgement to server so it commits the password
-    if (parsedResponse.passwordUpdate) {
-      console.log("[aivo-relay] Server sent password update, saving...");
-      const saved = await saveConnectorPassword(parsedResponse.passwordUpdate);
-      if (saved) {
-        console.log("[aivo-relay] Password saved successfully, sending acknowledgement...");
-        // Send ack using the NEW password (server accepts both during transition)
-        const ackSent = await sendPasswordAck(settings, parsedResponse.passwordUpdate, timeoutMs);
-        if (ackSent) {
-          console.log("[aivo-relay] Password update complete (two-phase commit successful)");
-        } else {
-          console.warn("[aivo-relay] Password ack failed - server may still accept old password on next poll");
-        }
-      } else {
-        console.error("[aivo-relay] CRITICAL: Failed to save new password. Extension may lose access on next request.");
-      }
-    }
-
-    if (keepalives.length > 0) {
-      void sendAck(settings);
-    }
-
-    // Extract server config for auto-open functionality
-    const serverConfig = parsedResponse.config || null;
-
-    const wasBound = boundTabIds.length > 0;
-
-    for (const msg of regularMessages) {
-      if (isDuplicateMessage(msg, dedupeSet, pendingBundles)) continue;
-
-      if (msg.type === "bundle" && msg.attachments.length) {
-        pendingBundles[msg.id] = ensurePendingBundle(msg, pendingBundles[msg.id]);
-        messageList = upsertMessageList(messageList, buildStoredMessage(msg, {
-          status: "pending",
-          errors: [],
-          wasBound
-        }));
-        continue;
-      }
-
-      const storedMessage = buildStoredMessage(msg, { status: "ok", errors: [], wasBound });
-      const delivery = await deliverToBoundTabs(
-        boundTabIds,
-        buildForwardPayload(msg, [], "ok"),
-        serverConfig,
-        settings
-      );
-      messageList = applyDeliveryStatus(messageList, msg.id, delivery);
-      messageList = upsertMessageList(messageList, storedMessage);
-      dedupeSet.add(msg.id);
-    }
-
-    const bundleOutcome = await processPendingBundles(
-      pendingBundles,
-      settings,
-      boundTabIds,
-      messageList,
-      dedupeSet,
-      serverConfig
-    );
-    pendingBundles = bundleOutcome.pendingBundles;
-    messageList = bundleOutcome.messageList;
-    dedupeSet = bundleOutcome.dedupeSet;
-
-    const nextCursor = resolveCursor(parsedResponse.cursor, parsed, incomingMessages, stored.cursor);
-    const { status: prevStatus } = stored;
-
-    await chrome.storage.local.set({
-      cursor: nextCursor,
-      messages: await trimMessageList(messageList),
-      pendingBundles: trimPendingBundles(pendingBundles),
-      recentMessageIds: trimDedupeList(dedupeSet),
-      status: {
-        ...prevStatus,
-        lastPollAt: Date.now(),
-        lastSuccessAt: Date.now(),
-        lastError: null,
-        connected: true,
-        lastKeepaliveAt: keepalives.length ? Date.now() : prevStatus.lastKeepaliveAt
-      }
-    });
-  } catch (err) {
-    const errorMessage =
-      err?.name === "AbortError"
-        ? `Request timed out after ${timeoutMs}ms`
-        : err?.message || String(err);
-    const { status: previousStatus } = await chrome.storage.local.get({
-      status: STATUS_DEFAULT
-    });
-    await chrome.storage.local.set({
-      status: {
-        lastPollAt: Date.now(),
-        lastSuccessAt: previousStatus?.lastSuccessAt ?? null,
-        lastError: errorMessage,
-        connected: false
-      }
-    });
-  } finally {
-    pollInFlight = false;
-  }
+  return pollOnceWithWait(0, { rethrowErrors: false });
 }
 
 async function processPendingBundles(pendingBundles, settings, boundTabIds, messageList, dedupeSet, serverConfig = null) {
@@ -479,12 +388,8 @@ function isDuplicateMessage(message, dedupeSet, pendingBundles) {
 
 async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null, settings = null) {
   let tabIds = Array.isArray(boundTabIds) ? [...boundTabIds] : [];
-  const effectiveSettings = settings || await getSettings();
-  const bindingModeEnabled = effectiveSettings.singleTabBindingMode !== false;
 
-  // Auto-open is only for unbound, non-binding mode flows. If tab binding mode is enabled,
-  // respect that and never auto-create/auto-bind a replacement tab.
-  if (tabIds.length === 0 && !bindingModeEnabled && serverConfig?.autoOpenTabUrl) {
+  if (tabIds.length === 0 && serverConfig?.autoOpenTabUrl) {
     try {
       console.log("[aivo-relay] No bound tabs, auto-opening:", serverConfig.autoOpenTabUrl);
       const newTab = await chrome.tabs.create({
@@ -513,7 +418,7 @@ async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null, set
   const results = [];
   for (const tabId of tabIds) {
     try {
-      await chrome.tabs.sendMessage(tabId, {
+      await sendMessageToTabWithRetries(tabId, {
         type: "NEW_MESSAGE",
         payload,
         text: payload?.text
@@ -539,9 +444,21 @@ async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null, set
   return { ok: false, reason: "send_failed", error: "All deliveries failed", failedCount };
 }
 
-// Legacy single-tab delivery (used by retryMessage)
-async function deliverToBoundTab(boundTabId, payload, serverConfig = null) {
-  return deliverToBoundTabs(boundTabId ? [boundTabId] : [], payload, serverConfig);
+async function sendMessageToTabWithRetries(tabId, message, maxAttempts = 8, delayMs = 300) {
+  let lastError = null;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      await chrome.tabs.sendMessage(tabId, message);
+      return;
+    } catch (err) {
+      lastError = err;
+      if (attempt === maxAttempts - 1) {
+        break;
+      }
+      await sleep(delayMs);
+    }
+  }
+  throw lastError || new Error("Failed to deliver message to tab");
 }
 
 /**

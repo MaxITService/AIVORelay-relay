@@ -35,9 +35,16 @@ let floatingPositionKey = "";
 let floatingPositionsCache = {};
 let dragState = null;
 
-chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type !== "NEW_MESSAGE") return;
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "START_MANUAL_PICK") {
+    Promise.resolve(window.AivoRelayManualPicker?.start?.(message.target))
+      .then((started) => sendResponse?.({ ok: Boolean(started) }))
+      .catch((err) => sendResponse?.({ ok: false, error: err?.message || String(err) }));
+    return true;
+  }
+  if (message?.type !== "NEW_MESSAGE") return false;
   void handleIncomingMessage(message);
+  return false;
 });
 
 async function handleIncomingMessage(message) {
@@ -906,45 +913,28 @@ function formatBytes(value) {
 }
 
 function buildMessageActions(message) {
-  if (!shouldShowRetry(message)) return null;
   const actions = document.createElement("div");
   actions.className = "hc-message-actions";
 
-  const retryBtn = document.createElement("button");
-  retryBtn.type = "button";
-  retryBtn.className = "hc-retry-btn";
-  retryBtn.textContent = "Retry";
-  retryBtn.addEventListener("click", () => {
-    void requestRetryMessage(message.id);
+  const resendBtn = document.createElement("button");
+  resendBtn.type = "button";
+  resendBtn.className = "hc-retry-btn";
+  resendBtn.textContent = "Resend";
+  resendBtn.title = "Send this stored message again";
+  resendBtn.addEventListener("click", () => {
+    void requestResendMessage(message.id);
   });
 
-  actions.appendChild(retryBtn);
+  actions.appendChild(resendBtn);
   return actions;
 }
 
-function shouldShowRetry(message) {
-  if (!message) return false;
-  if (message.status === "error") return true;
-  const retryable = new Set([
-    "send_not_found",
-    "editor_not_found",
-    "insert_failed",
-    "dropped_busy",
-    "send_failed",
-    "attachment_failed",
-    "bundle_error",
-    "bundle_failed",
-    "unbound"
-  ]);
-  return retryable.has(message.deliveryStatus);
-}
-
-async function requestRetryMessage(messageId) {
+async function requestResendMessage(messageId) {
   if (!messageId) return;
   try {
-    await chrome.runtime.sendMessage({ type: "RETRY_MESSAGE", id: messageId });
+    await chrome.runtime.sendMessage({ type: "RESEND_MESSAGE", id: messageId });
   } catch (err) {
-    console.warn("Failed to request retry", err);
+    console.warn("Failed to request resend", err);
   }
 }
 

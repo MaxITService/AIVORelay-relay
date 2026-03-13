@@ -509,13 +509,17 @@ async function connectorFetch(url, timeoutMs, options = {}) {
     settings: _settings,
     refreshSession,
     useSession,
+    signal: optionSignal,
     headers: optionHeaders,
     body,
     ...requestInit
   } = options;
   const shouldUseSession = useSession !== false;
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutController = new AbortController();
+  const timeoutId = setTimeout(() => timeoutController.abort(), timeoutMs);
+  const requestSignal = optionSignal
+    ? AbortSignal.any([optionSignal, timeoutController.signal])
+    : timeoutController.signal;
   let session = null;
 
   try {
@@ -540,7 +544,7 @@ async function connectorFetch(url, timeoutMs, options = {}) {
 
     const response = await fetch(url, {
       cache: "no-store",
-      signal: controller.signal,
+      signal: requestSignal,
       ...requestInit,
       headers,
       body
@@ -562,7 +566,8 @@ async function connectorFetch(url, timeoutMs, options = {}) {
       routeLabel: getRouteLabel(url)
     };
   } catch (err) {
-    if (shouldUseSession) {
+    const abortedByCaller = err?.name === "AbortError" && optionSignal?.aborted && !timeoutController.signal.aborted;
+    if (shouldUseSession && !abortedByCaller) {
       await clearConnectorSession();
     }
     throw err;

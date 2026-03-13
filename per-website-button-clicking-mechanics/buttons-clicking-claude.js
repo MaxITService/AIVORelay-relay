@@ -3,7 +3,7 @@
 async function processClaudeIncomingMessage(payload, options = {}) {
     const text = typeof payload === "string" ? payload : (payload.text || "");
     const attachments = payload.attachments || [];
-    const editorElement = window.ButtonsClickingShared.findEditor();
+    const editorElement = await window.ButtonsClickingShared.findEditor();
 
     if (!editorElement) {
         logConCgp("[claude] Editor not found.");

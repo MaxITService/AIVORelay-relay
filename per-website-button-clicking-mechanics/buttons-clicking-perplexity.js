@@ -3,7 +3,7 @@
 async function processPerplexityIncomingMessage(payload, options = {}) {
   const text = typeof payload === "string" ? payload : (payload.text || "");
   const attachments = payload.attachments || [];
-  const editorElement = window.ButtonsClickingShared.findEditor();
+  const editorElement = await window.ButtonsClickingShared.findEditor();
 
   if (!editorElement) {
     logConCgp("[perplexity] Editor not found.");
@@ -178,4 +178,3 @@ function sleep(ms) {
 }
 
 window.processPerplexityIncomingMessage = processPerplexityIncomingMessage;
-

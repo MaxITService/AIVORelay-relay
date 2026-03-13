@@ -103,6 +103,10 @@ async function ensureDefaults() {
 
 async function setupAlarm() {
   const settings = await getSettings();
+  if (settings.connectorEnabled === false) {
+    await chrome.alarms.clear("poll-messages");
+    return;
+  }
   const minutes = sanitizePollMinutes(settings.pollMinutes);
   chrome.alarms.create("poll-messages", { periodInMinutes: minutes });
 }
@@ -208,6 +212,19 @@ async function getSettings() {
     settings: DEFAULT_SETTINGS
   });
   return { ...DEFAULT_SETTINGS, ...settings };
+}
+
+async function setConnectorDisabledState() {
+  await chrome.storage.local.set({
+    status: {
+      ...STATUS_DEFAULT,
+      connected: false,
+      lastError: null,
+      lastKeepaliveAt: null
+    }
+  });
+  chrome.action.setBadgeText({ text: "" });
+  chrome.action.setTitle({ title: "AivoRelay: Connector OFF" });
 }
 
 async function getConnectorSession() {

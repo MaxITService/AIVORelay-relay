@@ -4,7 +4,7 @@ async function processChatGPTIncomingMessage(customMessage, options = {}) {
   const payload = normalizeChatGPTPayload(customMessage);
   const text = payload.text;
   const attachments = payload.attachments;
-  const editorArea = window.ButtonsClickingShared.findEditor();
+  const editorArea = await window.ButtonsClickingShared.findEditor();
 
   if (!editorArea) {
     logConCgp("[chatgpt] Editor not found.");

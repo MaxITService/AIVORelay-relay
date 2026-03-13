@@ -7,7 +7,7 @@
 async function processGeminiIncomingMessage(payload, options = {}) {
     const text = payload.text;
     const attachments = payload.attachments || [];
-    const editorArea = window.ButtonsClickingShared.findEditor();
+    const editorArea = await window.ButtonsClickingShared.findEditor();
 
     if (!editorArea) {
         logConCgp("[gemini] Editor not found.");

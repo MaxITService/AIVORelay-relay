@@ -12,8 +12,9 @@
 - Supported sites: ChatGPT, Gemini, Perplexity, Claude, Grok, and AI Studio (all with attachment support).
 - Perplexity insertion uses a main-world injector script for text and a "Paste Event" simulation for attachments.
 - Auto-send toggle lives in the popup (default on, stored in chrome.storage.local).
+- Popup now has tabs, inline setup guidance/tooltips, selector editing per site, heuristic toggles, and an "Open In Tab" action for a larger settings view.
 - Status reports are POSTed to `/messages` with type `status` and prefix `[hc-status]` to avoid loops.
-- No selector auto-detection or button injection container logic is used.
+- Selector recovery now uses built-in heuristics plus a manual picker toast that can save editor/send/stop selectors per site.
 
 ## Password Authentication
 
@@ -61,6 +62,9 @@
 - `popup.js`
 - `popup.html`
 - `per-website-button-clicking-mechanics/buttons-clicking-shared.js`
+- `per-website-button-clicking-mechanics/selector-settings.js`
+- `per-website-button-clicking-mechanics/selector-heuristics.js`
+- `per-website-button-clicking-mechanics/selector-manual-picker.js`
 - `per-website-button-clicking-mechanics/buttons-clicking-chatgpt.js`
 - `per-website-button-clicking-mechanics/buttons-clicking-perplexity.js`
 - `per-website-button-clicking-mechanics/perplexity-injector.js`
@@ -96,6 +100,8 @@ MV3 service workers sleep after ~30s of inactivity, losing in-memory state. The 
 
 - **Lossless Delivery**: Uses a cursor-based tracking system. The extension tracks the last processed message ID. On crash or restart, it resumes polling from the stored cursor, ensuring no messages are skipped.
 - **Long-Polling**: Uses a persistent connection (25s hold) for near real-time delivery with significantly reduced server load compared to short intervals.
+- **Long-Poll Restarts**: Settings-driven restarts now cancel the in-flight long-poll request and rotate a loop generation token so an older loop cannot resume after a replacement starts.
+- **Immediate Poll Path**: `pollOnce()` now delegates to the same shared polling implementation as long-poll requests, reducing duplicate logic in the service worker.
 - **Bundle Prioritization (LIFO)**: The pending bundle queue (`pendingBundles`) sorts items by creation time descending. **Newest messages are processed first**. This prevents old, stuck attachments (e.g., large files on slow networks) from blocking fresh, lightweight text messages.
 - **Queue Trimming**: Explicitly keeps the _newest_ 200 bundles and drops the oldest to maintain the "freshness first" strategy.
 - **Attachment Retries**: Failed attachments are retried up to 2 times with a 1.5s delay. Text content is delivered immediately; only attachments wait.
