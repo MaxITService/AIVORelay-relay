@@ -388,6 +388,7 @@ function isDuplicateMessage(message, dedupeSet, pendingBundles) {
 
 async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null, settings = null) {
   let tabIds = Array.isArray(boundTabIds) ? [...boundTabIds] : [];
+  let autoOpenedFreshTab = false;
 
   if (tabIds.length === 0 && serverConfig?.autoOpenTabUrl) {
     try {
@@ -403,6 +404,7 @@ async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null, set
       // Bind to the new tab
       await bindTabById(newTab.id);
       tabIds = [newTab.id];
+      autoOpenedFreshTab = true;
       console.log("[aivo-relay] Auto-bound to new tab:", newTab.id);
     } catch (err) {
       console.warn("[aivo-relay] Failed to auto-open tab:", err);
@@ -412,6 +414,12 @@ async function deliverToBoundTabs(boundTabIds, payload, serverConfig = null, set
 
   if (tabIds.length === 0) {
     return { ok: false, reason: "unbound", detail: "No bound tabs" };
+  }
+
+  const shouldDelayForFreshAutoOpen = autoOpenedFreshTab && settings?.autoSend !== false;
+  if (shouldDelayForFreshAutoOpen) {
+    console.log("[aivo-relay] Fresh auto-open with auto-send enabled, waiting 4s before delivery");
+    await sleep(4000);
   }
 
   // Deliver to all bound tabs
