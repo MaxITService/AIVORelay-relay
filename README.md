@@ -1,6 +1,8 @@
-# AivoRelay
+# AivoRelay-relay (not the same as AIVORelay!)
 
 A Chrome extension that bridges external applications with AI chat interfaces (ChatGPT, Perplexity). Send text and files from any local application directly into your AI conversations.
+
+This extension works only with main program: [AIVORelay](https://github.com/MaxITService/AIVORelay). The main program talks to it and it writes the messages into AI chats.
 
 ## Features
 
